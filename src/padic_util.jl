@@ -299,7 +299,7 @@ end
 # Performs subtraction in-place, x-> x-y 
 function _unsafe_minus!(x::padic, y::padic)
     x.N = min(x.N, y.N)
-    ccall((:padic_sub, :libflint), Nothing,
+    ccall((:padic_sub, Hecke.:libflint), Nothing,
           (Ref{padic}, Ref{padic}, Ref{padic}, Ref{FlintPadicField}),
           x, x, y, parent(x))
     return
