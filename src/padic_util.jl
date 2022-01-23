@@ -1222,14 +1222,18 @@ details need to be worked out to make the best practical improvements of the alg
 """
 function block_schur_form(A::Hecke.Generic.Mat{T} where T <: padic)
 
-    Qp = A.base_ring
-    N = Qp.prec_max
+    Qp = base_ring(A)
+    N = precision(Qp)
+
+    iszero(A) && return A, identity_matrix(base_ring(A), ncols(A))
     
     # Extract data from the reduction modulo p
-    Aint  = _normalize_matrix(A)
+    Aint, scale_factor  = _normalize_matrix(A)
     Amp   = modp.(Aint)
     chiAp = charpoly(Amp)
+    inv_scale_factor = inv(scale_factor)
 
+    
     ####################################################
     # Part 1: computation of the sorted form. (Skipped)
     ####################################################
@@ -1275,9 +1279,9 @@ function block_schur_form(A::Hecke.Generic.Mat{T} where T <: padic)
 
             # Ensure that the rayleigh shift actually helps convergence.
             rayleigh_shift = sum(B[j,j] for j=bottom_block_end-m+1:bottom_block_end)/Qp(m)
-            rayleigh_shift.N = N
+            setprecision!(rayleigh_shift, N)
 
-            if modp(rayleigh_shift) != rt
+            if modp(rayleigh_shift * scale_factor) != rt
                 lambdaI = lift(rt)*id
             else
                 lambdaI = rayleigh_shift*id
@@ -1311,11 +1315,11 @@ end
 function _normalize_matrix(A)
 
     Qp = A.base_ring
-    vals_of_A = valuation.( A.entries )
+    vals_of_A = valuation.(A.entries)
     min_val = minimum(vals_of_A)
 
     scale_factor = Qp(Qp.p)^max(0,Int64(-min_val))
-    return scale_factor * A
+    return scale_factor * A, scale_factor
 end
 
 """
