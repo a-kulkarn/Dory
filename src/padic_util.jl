@@ -1052,12 +1052,12 @@ function power_iteration_decomposition(A, Amp)
     for i in 1:length(E.values)
        
         # Approximate input data
-        appx_eval = Qp( lift(E.values[i]) )
-        appx_espace =  matrix(Qp, lift(E.spaces[i]) )
+        appx_eval = Qp(lift(E.values[i]))
+        appx_espace =  change_base_ring(Qp, lift(E.spaces[i]))
 
         # Apply power iteration step.
 
-        B = A - appx_eval*identity_matrix(Qp,size(A,1))
+        B = A - appx_eval * identity_matrix(Qp,size(A,1))
 
         for j=1:ceil(log2(M*N))
             B = B^2
@@ -1066,8 +1066,8 @@ function power_iteration_decomposition(A, Amp)
         nu,V = nullspace(B)
 
         if nu == 0
-            display( valuation.(singular_values(A)) )
-            display( valuation.(singular_values(B)) )
+            display(valuation.(singular_values(A)))
+            display(valuation.(singular_values(B)))
             error("Matrix 'B' is invertible. Iteration did not converge.")
         end
         
