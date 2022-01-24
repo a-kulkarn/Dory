@@ -51,6 +51,9 @@ include("polynomial_ext.jl")
 
 function __init__()
 
+    # Setup Verbose flags
+    Hecke.add_verbose_scope(:local_QR)
+    
     if myid() == 1
         println("")
         print("You've found \n")

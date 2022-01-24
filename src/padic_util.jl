@@ -459,8 +459,8 @@ function padic_qr(A::Hecke.SMat{padic};
     # Initialize the shift index to determine the critial pivot location.
     shift=0
     k=1
-    
-    @time while k <= (min(n,m)::Int64) && k+shift <= m::Int64
+
+    while k <= (min(n,m)::Int64) && k+shift <= m::Int64
 
         ### Pivot logic ###
         
@@ -496,11 +496,9 @@ function padic_qr(A::Hecke.SMat{padic};
         #Update loop counter.
         k += 1        
     end
-
     
-
     # The test is actually quite expensive, but we keep it for now.
-    @time @assert iszero( matrix(A)[P,Pcol] - transpose(matrix(Ltrans))*matrix(U) )
+    @vtime :local_QR @assert iszero(matrix(A)[P,Pcol] - transpose(matrix(Ltrans))*matrix(U))
 
     return QRPadicSparsePivoted( transpose(Ltrans),U,P,Pcol)
 end
@@ -918,7 +916,7 @@ function inverse_iteration!(A,shift,V)
         return V / V[m]
     end
     
-    @time pow = rectangular_solve(B,identity_matrix(B.base_ring,size(B,1)),stable=true)
+    pow = rectangular_solve(B,identity_matrix(B.base_ring,size(B,1)), stable=true)
 
     if TESTFLAG
         println("---pow---")
@@ -927,7 +925,7 @@ function inverse_iteration!(A,shift,V)
         println()
     end
     
-    @time for i=1:(A.base_ring.prec_max)
+    for i=1:(A.base_ring.prec_max)
         V = normalize(pow*V)
         if TESTFLAG
             println(V)
@@ -960,7 +958,7 @@ function inverse_iteration!(A,shift,V)
     # Since only eigenvectors (mod p) are given as the initial data, the operator Y *must* be
     # zero mod p. We scale out the denominator to try again.
     
-    vals_of_Y = valuation.( Y )
+    vals_of_Y = valuation.(Y)
     min_val = minimum(vals_of_Y)
 
     if min_val <=0
@@ -987,8 +985,8 @@ If subspace iteration does not satisfy `A*v ⊆ v`, an error is raised.
 """
 function inverse_iteration(A, shift, v)
     w = deepcopy(v)
-    wlist,nulist = inverse_iteration!(A,shift,w)    
-    return wlist,nulist
+    wlist, nulist = inverse_iteration!(A, shift, w)
+    return wlist, nulist
 end
 
 @doc Markdown.doc"""
@@ -1012,8 +1010,8 @@ function inverse_iteration_decomposition(A, Amp)
     for i in 1:length(E.values)
 
         # Approximate input data
-        appx_eval = Qp( lift(E.values[i]) )
-        appx_espace =  matrix(Qp, lift(E.spaces[i]) )
+        appx_eval = Qp(lift(E.values[i]))
+        appx_espace =  matrix(Qp, lift(E.spaces[i]))
 
         # Apply inverse iteration step.
         wlist,nulist = inverse_iteration(A, appx_eval, appx_espace)
@@ -1040,7 +1038,7 @@ function power_iteration_decomposition(A, Amp)
     N = Qp.prec_max
     E = eigspaces(Amp)
 
-    restricted_maps = Array{typeof(fill(zero(Qp), 0)),1}()
+    restricted_maps = Array{typeof(fill(zero(Qp), 0)), 1}()
     spaces_lift = Array{typeof(fill(zero(parent(A)), 0)), 1}()
 
     roots_and_mults = roots_with_multiplicities(Hecke.charpoly(Amp))
@@ -1376,7 +1374,7 @@ function eigspaces(A::Hecke.Generic.Mat{T} where T <: padic; method="power")
 end
 
 function _modp_charpoly_data(A::Hecke.Generic.Mat{T} where T <: padic)
-    Aint  = _normalize_matrix(A)
+    Aint, scale_factor  = _normalize_matrix(A)
     Amp   = modp.(Aint)
     chiAp = charpoly(Amp)
 
