@@ -1201,11 +1201,33 @@ function hessenberg(A::Hecke.Generic.Mat{T} where T <: padic, basis=Val(true))
 end
 
 
-#************************************************
-#  QR-iteration 
-#************************************************
+#################################################
+#  QR-iteration helper functions
+#################################################
 
-"""
+# Default function for selecting a rayleigh shift of a block.
+function default_rayleigh_shift(B)
+    Qp = base_ring(B)
+    m = size(B,2)
+    
+    value = trace(B)/Qp(m)
+    setprecision!(value, precision(Qp))
+    return value
+end
+
+function default_iter_bound(m::Integer, N)
+    if m == 1
+        return Int(ceil(log(2,N))) + 5
+    else
+        return m * N + 2 * m + 3
+    end
+end
+
+#################################################
+#  QR-iteration 
+#################################################
+
+@doc Markdown.doc"""
     block_schur_form(A::Hecke.Generic.Mat{T} where T <: padic) --> B,V :: Hecke.Generic.Mat{T}
 
 Computes the block schur form `B` of a padic matrix `A`, where the
@@ -1216,7 +1238,9 @@ NOTE:
 Presently, `block_shur_form` does not attempt to further refine the blocks recursively. Theoretical
 details need to be worked out to make the best practical improvements of the algorithm. 
 """
-function block_schur_form(A::Hecke.Generic.Mat{T} where T <: padic)
+function block_schur_form(A::Hecke.Generic.Mat{T} where T <: padic;
+                          shift = default_rayleigh_shift,
+                          iter_bound = default_iter_bound)
 
     Qp = base_ring(A)
     N = precision(Qp)
@@ -1259,28 +1283,26 @@ function block_schur_form(A::Hecke.Generic.Mat{T} where T <: padic)
     
     # rts = map(x->x[1], rts_and_muls)
     # m = isempty(rts) ? 0 : maximum(map(x->x[2], rts_and_muls))
-    
+
     for (rt, m) in rts_and_muls
         
         # Regarding convergence. Some extra time is needed as QR is not always
         # rank revealing.
 
-        if m == 1
-            iter_bound = Int(ceil(log(2,N))) + 5
-        else
-            iter_bound = m*N+2*m+3
-        end
+        num_iters = iter_bound(m, N)
         
-        for i in 1:iter_bound
+        for i in 1:num_iters
 
+            bottom_block_range = bottom_block_end-m+1:bottom_block_end
+            Bview = view(B, bottom_block_range, bottom_block_range)
+
+            shift_value = shift(Bview)
+            
             # Ensure that the rayleigh shift actually helps convergence.
-            rayleigh_shift = sum(B[j,j] for j=bottom_block_end-m+1:bottom_block_end)/Qp(m)
-            setprecision!(rayleigh_shift, N)
-
-            if modp(rayleigh_shift * scale_factor) != rt
-                lambdaI = lift(rt)*id
+            if modp(shift_value * scale_factor) != rt
+                lambdaI = lift(rt) * id
             else
-                lambdaI = rayleigh_shift*id
+                lambdaI = shift_value * id
             end
 
             # QR-step.
