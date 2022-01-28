@@ -21,10 +21,18 @@ import Hecke.valuation
 function +(x::padic) return x end
 function /(x::padic,y::padic) return x//y end
 
-function isapprox(x::Number, y::Number;
-                  atol::Real=0, rtol::Real=rtoldefault(x,y,atol),
-                  nans::Bool=false, norm::Function=abs)
-    x == y || (isfinite(x) && isfinite(y) && norm(x-y) <= max(atol, rtol*max(norm(x), norm(y)))) || (nans && isnan(x) && isnan(y))
+function isapprox(x::NonArchLocalFieldElem, y::NonArchLocalFieldElem;
+                  valuation_atol::Real = min(precision(x), precision(y)),
+                  atol::Real=0,
+                  norm::Function=abs)
+
+    # TODO: Implement the relative tolerance functionality, similar to Julia.
+    
+    x == y && return true
+    z = x - y
+    
+    atol == 0 && return valuation(z) >= valuation_atol
+    return abs(z) <= atol
 end
 
 # Access to the precision fields.
