@@ -1280,11 +1280,7 @@ function block_schur_form(A::Hecke.Generic.Mat{T} where T <: padic;
     # Part 2: Main QR iteration.
     ####################################################
 
-    B, V = hessenberg(A)
-
-    # TODO: There seems to be a precision bug with V.
-    @info "After Hessenberg" precision.(B) precision.(V)
-    
+    B, V = hessenberg(A)    
     id = identity_matrix(Qp, size(B,1))
 
     bottom_block_end = size(A,2)
