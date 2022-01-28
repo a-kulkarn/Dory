@@ -21,6 +21,12 @@ import Hecke.valuation
 function +(x::padic) return x end
 function /(x::padic,y::padic) return x//y end
 
+function isapprox(x::Number, y::Number;
+                  atol::Real=0, rtol::Real=rtoldefault(x,y,atol),
+                  nans::Bool=false, norm::Function=abs)
+    x == y || (isfinite(x) && isfinite(y) && norm(x-y) <= max(atol, rtol*max(norm(x), norm(y)))) || (nans && isnan(x) && isnan(y))
+end
+
 # Access to the precision fields.
 """
 
@@ -66,8 +72,8 @@ function test_rings()
 end
 
 function rand_padic_int(Qp::FlintPadicField)
-    p = Qp.p
-    N = Qp.prec_max
+    p = prime(Qp)
+    N = precision(Qp)
     return Qp(rand(1:BigInt(p)^N))
 end
 
@@ -170,17 +176,18 @@ function padic_qr(A::Hecke.Generic.MatElem{padic};
     end
     
     # Set constants
+    R = base_ring(A)
     n = size(A,1)::Int64
     m = size(A,2)::Int64
-    basezero = zero(A.base_ring)
+    basezero = zero(R)
     
-    L= identity_matrix(A.base_ring,n)
-    Lent = L.entries::Array{padic,2}  
-    Umat= deepcopy(A)
+    L = identity_matrix(R, n)
+    Lent = L.entries::Array{padic, 2}  
+    Umat = deepcopy(A)
     U = Umat.entries
     
-    P= Array(1:n)
-    Pcol=Array(1:m)
+    P = Array(1:n)
+    Pcol = Array(1:m)
 
     # We cache the maximum value of the matrix at each step, so we save an iteration pass
     # through the matrix.
@@ -188,9 +195,9 @@ function padic_qr(A::Hecke.Generic.MatElem{padic};
     min_val, min_val_index = findmin(val_list);
     
     # Allocate specific working memory for multiplications.
-    container_for_swap    = padic(U[1,1].N)
-    container_for_product = padic(U[1,1].N)
-    container_for_div     = padic(U[1,1].N)
+    container_for_swap    = R()
+    container_for_product = R()
+    container_for_div     = R()
     
     # Allocate a 2-element array to hold the index of the maximum valuation.
     min_val_index_mut = [x for x in min_val_index.I]
@@ -482,13 +489,13 @@ function padic_qr(A::Hecke.SMat{padic};
             # as L[j,k] is really an integer.
             Ltrans[k,j] = U[j,piv]*container_for_inv
 
-            if Ltrans[k,j].N < prec(Qp)
-                Ltrans[k,j].N = prec(Qp)
+            if Ltrans[k,j].N < precision(Qp)
+                Ltrans[k,j].N = precision(Qp)
             end
             
             if Ltrans[k,j] != 0
                 Hecke.add_scaled_row!(U, k, j, -Ltrans[k,j])
-            elseif valuation(Ltrans[k,j]) < prec(Qp)
+            elseif valuation(Ltrans[k,j]) < precision(Qp)
                 error("Problem related to Hecke's `add_scaled_row` function encountered.")
             end
         end
@@ -500,7 +507,7 @@ function padic_qr(A::Hecke.SMat{padic};
     # The test is actually quite expensive, but we keep it for now.
     @vtime :local_QR @assert iszero(matrix(A)[P,Pcol] - transpose(matrix(Ltrans))*matrix(U))
 
-    return QRPadicSparsePivoted( transpose(Ltrans),U,P,Pcol)
+    return QRPadicSparsePivoted(transpose(Ltrans), U, P, Pcol)
 end
 
 
@@ -897,9 +904,9 @@ const TESTFLAG=false
 function inverse_iteration!(A,shift,V)
 
     # Note: If A is not known to precision at least one, really bad things happen.
-    Qp = A.base_ring
-    In = identity_matrix(A.base_ring, size(A,1))
-    B  = A - shift*In
+    Qp = base_ring(A)
+    In = identity_matrix(Qp, size(A,1))
+    B  = A - shift * In
     
     if rank(B) < ncols(B)
         println("Value `shift` is exact eigenvalue. `shift` = ", shift)
@@ -907,14 +914,14 @@ function inverse_iteration!(A,shift,V)
     end
 
     function normalize(V)
-        maxn, m = findmax( abs.(V.entries) )
+        maxn, m = findmax(abs.(V.entries))
         if iszero(maxn)
             return V
         end
         return V / V[m]
     end
     
-    pow = rectangular_solve(B,identity_matrix(B.base_ring,size(B,1)), stable=true)
+    pow = rectangular_solve(B, identity_matrix(B.base_ring, size(B,1)), stable=true)
 
     if TESTFLAG
         println("---pow---")
@@ -923,7 +930,7 @@ function inverse_iteration!(A,shift,V)
         println()
     end
     
-    for i=1:(A.base_ring.prec_max)
+    for i=1:precision(Qp)
         V = normalize(pow*V)
         if TESTFLAG
             println(V)
@@ -1032,8 +1039,8 @@ end
 
 function power_iteration_decomposition(A, Amp)
 
-    Qp = A.base_ring
-    N = Qp.prec_max
+    Qp = base_ring(A)
+    N = precision(Qp)
     E = eigspaces(Amp)
 
     restricted_maps = Array{typeof(fill(zero(Qp), 0)), 1}()
@@ -1042,7 +1049,7 @@ function power_iteration_decomposition(A, Amp)
     roots_and_mults = roots_with_multiplicities(Hecke.charpoly(Amp))
 
     if length(E.values) > 0
-        M = maximum( [ a[2] for a in roots_and_mults])
+        M = maximum([a[2] for a in roots_and_mults])
     end
     
     for i in 1:length(E.values)
