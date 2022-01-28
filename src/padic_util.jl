@@ -1111,20 +1111,24 @@ Computes the Hessenberg form of `A` inplace. If `basis=Val(true)`, also return t
     AV = VB
 """
 function hessenberg!(A::Hecke.Generic.Mat{T} where T <: padic; basis=Val(true))
-    !issquare(A) && error("Dimensions don't match in hessenberg")
+    !issquare(A) && DimensionMismatch("Dimensions don't match in hessenberg")
     R = base_ring(A)
     n = nrows(A)
     u = R()
     t = R()
 
     if basis == Val(true)
-        B = identity_matrix(R, size(A,1))
+        # Initialize the identity matrix.
+        B = parent(A)()
+        for i = 1:size(B, 1)
+            B[i,i] = one(R)
+        end
     end
     
     for m = 1:n - 2
 
-        val_list = float64_valuation.(A.entries[ m+1 : n , m ])
-        minn, row_pivot_index = findmin( val_list );
+        val_list = float64_valuation.(A.entries[m+1:n , m])
+        minn, row_pivot_index = findmin(val_list);
         if minn==Inf continue end
 
         i = row_pivot_index + m;
@@ -1147,12 +1151,13 @@ function hessenberg!(A::Hecke.Generic.Mat{T} where T <: padic; basis=Val(true))
 
         # cache the inverted pivot.
         h = -inv(A[m+1, m])
-
+        
         # Perform the elimination.
         for i = m + 2:n
-            if iszero(A[i, m]) continue end
+            iszero(A[i, m]) && continue
             
             u = Hecke.mul!(u, A[i, m], h)
+            u = setprecision!(u, N) # The pivot is always the largest entry.
 
             # Row operatons
             for j = 1:n
@@ -1163,7 +1168,7 @@ function hessenberg!(A::Hecke.Generic.Mat{T} where T <: padic; basis=Val(true))
                     
                 if basis==Val(true)
                     t = Hecke.mul!(t, u, B[m+1,j])
-                    B[i,j] = addeq!(B[i,j],t)
+                    B[i,j] = addeq!(B[i,j], t)
                 end
             end
             u = -u
@@ -1174,7 +1179,7 @@ function hessenberg!(A::Hecke.Generic.Mat{T} where T <: padic; basis=Val(true))
                 A[j, m+1] = addeq!(A[j, m+1], t)
             end
             A[i, m] = R()            
-        end        
+        end
     end
 
     if basis==Val(true)
@@ -1232,7 +1237,7 @@ end
 
 Computes the block schur form `B` of a padic matrix `A`, where the
 blocks correspond to the different eigenvalues of `A modulo p`. The outputs satisfy
-`AV = VB`
+`VA = BV`
 
 NOTE: 
 Presently, `block_shur_form` does not attempt to further refine the blocks recursively. Theoretical
@@ -1275,6 +1280,10 @@ function block_schur_form(A::Hecke.Generic.Mat{T} where T <: padic;
     ####################################################
 
     B, V = hessenberg(A)
+
+    # TODO: There seems to be a precision bug with V.
+    #@info "After Hessenberg" precision.(B) precision.(V)
+    
     id = identity_matrix(Qp, size(B,1))
 
     bottom_block_end = size(A,2)
