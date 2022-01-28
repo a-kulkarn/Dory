@@ -169,6 +169,10 @@ function diagonal_matrix(x::NonArchLocalFieldElem, n::Int, m::Int)
     return D
 end
 
+function _has_any_shared_refs(B)
+    boo = any(B[i,j] === B[k,l] for i=1:size(B,1) for j=1:size(B,1) for k=1:size(B,1) for l=1:size(B,1) if (i != k || j != l))
+    return boo
+end
 
 ##############################################################################################
 #                                                                                            #
