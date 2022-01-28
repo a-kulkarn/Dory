@@ -1529,6 +1529,44 @@ function block_data(A)
     return data
 end
 
+@doc Markdown.doc"""
+    diagonal_block_ranges(A)
+
+Given a square matrix `A`, return the ranges `1:k` so that `A[1:k, 1:k]` is a diagonal block of `A`
+"""
+function diagonal_block_ranges(A; pad=0)
+
+    Hecke.AbstractAlgebra.check_square(A)
+    n = size(A,1)
+
+    n == 0 && return Vector{UnitRange{Integer}}()
+
+    # Search from the bottom-right corner, and update the row of highest index
+    # known to contain an entry from the block.
+    mark = (1,1)
+    i = n
+    j = 1
+    while j <= mark[1]
+        while i > mark[1]
+            if !iszero(A[i, j])
+                mark = (i, j)
+                i = n
+                break
+            end
+            i -= 1
+        end
+        j += 1
+    end
+
+    block_size = mark[1]
+
+    # Find the blocks 
+    blocks = diagonal_block_ranges(view(A, block_size+1:n, block_size+1:n), pad=pad+block_size)
+    insert!(blocks, 1, pad+1 : pad+block_size)    
+    return blocks
+end
+
+
 function isweak_block_schur_hessenberg(S)
     # Returns true if and only if S is a (weak) block Schur form. It is
     # assumed that S is also a Hessenberg matrix.
