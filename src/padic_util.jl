@@ -65,7 +65,7 @@ end
 
 
 function abs(x::padic)
-    p = parent(x).p
+    p = Hecke.prime(parent(x))
     return Float64(p)^(-valuation(x))
 end
 
@@ -1140,7 +1140,7 @@ function hessenberg!(A::Hecke.Generic.Mat{T} where T <: padic; basis=Val(true))
             B[i,i] = one(R)
         end
     end
-    
+
     for m = 1:n - 2
 
         val_list = float64_valuation.(A.entries[m+1:n , m])
@@ -1524,7 +1524,6 @@ end
 (Non-critical testing function). Print the valuations of the main/sub diagonal.
 """
 function block_data(A)
-
     n = size(A,2)
     data = Array{Any,2}(nothing, 2, n)
     
