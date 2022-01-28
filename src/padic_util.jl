@@ -1113,6 +1113,7 @@ Computes the Hessenberg form of `A` inplace. If `basis=Val(true)`, also return t
 function hessenberg!(A::Hecke.Generic.Mat{T} where T <: padic; basis=Val(true))
     !issquare(A) && DimensionMismatch("Dimensions don't match in hessenberg")
     R = base_ring(A)
+    N = precision(R)
     n = nrows(A)
     u = R()
     t = R()
@@ -1282,7 +1283,7 @@ function block_schur_form(A::Hecke.Generic.Mat{T} where T <: padic;
     B, V = hessenberg(A)
 
     # TODO: There seems to be a precision bug with V.
-    #@info "After Hessenberg" precision.(B) precision.(V)
+    @info "After Hessenberg" precision.(B) precision.(V)
     
     id = identity_matrix(Qp, size(B,1))
 

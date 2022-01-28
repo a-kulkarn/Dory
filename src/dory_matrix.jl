@@ -136,9 +136,9 @@ function Hecke.matrix(A::Array{Array{T,1},1} where T <: Hecke.NCRingElem)
     return matrix( hcat(A...) )
 end
 
-function Hecke.matrix(R::Hecke.Nemo.AbstractAlgebra.NCRing, A::Array{Array{T,1},1} where T)
-    return matrix( R, hcat(A...) )
-end
+# function Hecke.matrix(R::Hecke.Nemo.AbstractAlgebra.NCRing, A::Array{Array{T,1},1} where T)
+#     return matrix( R, hcat(A...) )
+# end
 
 
 import Base./
@@ -153,6 +153,22 @@ function colcat(L::Array{T,1} where T <: Hecke.Generic.Mat{S} where S)
         return T
     end
 end
+
+##############################################################################################
+#                                                                                            
+#    diagonal matrix fix
+#                                                                                            
+##############################################################################################
+
+# An actually sensible version of diagonal_matrix
+function diagonal_matrix(x::NonArchLocalFieldElem, n::Int, m::Int)
+    D = Hecke.MatrixSpace(parent(x), n, m)()
+    for i = 1:min(n, m)
+        D[i,i] = deepcopy(x)
+    end
+    return D
+end
+
 
 ##############################################################################################
 #                                                                                            #
