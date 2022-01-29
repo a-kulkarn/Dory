@@ -33,6 +33,7 @@ exclude = [ :AbstractAlgebra, :CoerceMap, :CoerceMap, :Hecke, :Nemo, :RealField,
             :window, :xgcd, :zz ]
 
 
+# TODO: remove the crazy import.
 
 for i in names(Hecke)
     i in exclude && continue

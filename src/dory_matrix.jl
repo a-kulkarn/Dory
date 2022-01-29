@@ -154,6 +154,16 @@ function colcat(L::Array{T,1} where T <: Hecke.Generic.Mat{S} where S)
     end
 end
 
+
+function check_square(A::AbstractMatrix)
+    issquare(A) || throw(DomainError(A, "matrix must be square"))
+    return A
+end
+
+function issquare(A::AbstractMatrix)
+    return size(A,1) == size(A,2)
+end
+
 ##############################################################################################
 #                                                                                            
 #    diagonal matrix fix

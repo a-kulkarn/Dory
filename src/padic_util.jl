@@ -15,7 +15,7 @@ end
 #                                                                                            #
 ##############################################################################################
 
-import Base: +, abs 
+import Base: +, abs
 import Hecke.valuation
 
 function +(x::padic) return x end
@@ -31,9 +31,23 @@ function isapprox(x::NonArchLocalFieldElem, y::NonArchLocalFieldElem;
     x == y && return true
     z = x - y
     
-    atol == 0 && return valuation(z) >= valuation_atol
+    atol == 0 && return valuation(z) >= min(valuation_atol, precision(z))
     return abs(z) <= atol
 end
+
+function isapprox_zero(x::NonArchLocalFieldElem;
+                       valuation_atol::Real = precision(x),
+                       atol::Real=0,
+                       norm::Function=abs)
+
+    # TODO: Implement the relative tolerance functionality, similar to Julia.
+    
+    iszero(x) && return true
+    
+    atol == 0 && return valuation(x) >= min(valuation_atol, precision(x))
+    return abs(x) <= atol
+end
+
 
 # Access to the precision fields.
 """
@@ -153,6 +167,15 @@ struct QRPadicSparsePivoted
     R::Hecke.SMat{padic}
     p::Array{Int64,1}
     q::Array{Int64,1}
+end
+
+
+function norm(A::Hecke.Generic.MatElem{T}) where T <: NonArchLocalFieldElem
+    return maximum(abs, A)
+end
+
+function norm_valuation(A::Hecke.Generic.MatElem{T}) where T <: NonArchLocalFieldElem
+    return minimum(valuation, A)
 end
 
 @doc Markdown.doc"""
@@ -1298,6 +1321,8 @@ function block_schur_form(A::Hecke.Generic.Mat{T} where T <: padic;
     B, V = hessenberg(A)    
     id = identity_matrix(Qp, size(B,1))
 
+    # @info "block_schur_form, Hessenberg" precision.(B)
+    
     bottom_block_end = size(A,2)
     rts_and_muls = roots_with_multiplicities(chiAp)
     sort!(rts_and_muls, lt=(x,y)->(x[2]<y[2]))
@@ -1332,6 +1357,9 @@ function block_schur_form(A::Hecke.Generic.Mat{T} where T <: padic;
             F = padic_qr(B - lambdaI, hessenberg=Val(true))
             B = F.R[:,F.p] * F.Q + lambdaI
             V = inv_unit_lower_triangular(F.Q)*V[F.p,:]
+
+            # i == 1 && @info "block_schur_form, update" precision.(B)
+
         end
 
         bottom_block_end = bottom_block_end - m
@@ -1543,10 +1571,9 @@ Given a square matrix `A`, return the ranges `1:k` so that `A[1:k, 1:k]` is a di
 """
 function diagonal_block_ranges(A; pad=0)
 
-    Hecke.AbstractAlgebra.check_square(A)
+    check_square(A)
     n = size(A,1)
-
-    n == 0 && return Vector{UnitRange{Integer}}()
+    n == 0 && return Vector{UnitRange{Int}}()
 
     # Search from the bottom-right corner, and update the row of highest index
     # known to contain an entry from the block.
