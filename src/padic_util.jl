@@ -744,7 +744,7 @@ function _lu_rectangular_solve(A::Hecke.MatElem{padic}, b_input::Hecke.MatElem{p
         for i in (n+1):m
             for j in 1:ncols(b)
                 if !iszero(b[i, j])
-                    throw(InconsistentSystem(A, b_input))
+                    throw(InconsistentSystemError(A, b_input))
                 end
             end
         end
