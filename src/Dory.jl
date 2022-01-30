@@ -35,11 +35,11 @@ exclude = [ :AbstractAlgebra, :CoerceMap, :CoerceMap, :Hecke, :Nemo, :RealField,
 
 # TODO: remove the crazy import.
 
-for i in names(Hecke)
-    i in exclude && continue
-    eval(Meta.parse("import Hecke." * string(i)))
-    eval(Expr(:export, i))
-end
+# for i in names(Hecke)
+#     i in exclude && continue
+#     eval(Meta.parse("import Hecke." * string(i)))
+#     eval(Expr(:export, i))
+# end
 
 
 ## End Export ##

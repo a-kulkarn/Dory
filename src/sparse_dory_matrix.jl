@@ -21,7 +21,7 @@ function maximum(::typeof(abs), A::SMat{T} where T)
     return abs(m)
 end
 
-
+import Base.size
 function size(A::SMat{T} where T, i::Int64)
     return size(A)[i]
 end
@@ -31,6 +31,9 @@ function rows(A::SMat{T} where T)
 end
 
 ## Temporary patch.
+#
+# For some reason, commenting this out causes matrix(::SMat) to break.
+# I have no idea why...
 function Base.deepcopy(A::SMat{T} where T)
     return Hecke.copy(A)
 end

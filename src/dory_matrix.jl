@@ -6,6 +6,10 @@
 # to provide familiarity for the user.
 #import LinearAlgebra: eigen, Eigen, eigvals, eigvecs
 
+import Base: getindex, setindex, similar, /
+import Hecke: matrix, identity_matrix, diagonal_matrix
+import Hecke.AbstractAlgebra: checksquare, issquare
+
 ##############################################################################################
 #                                                                                            #
 #                             Basic interface                                                #
@@ -133,15 +137,13 @@ function Hecke.matrix(A::Array{T,2} where T <: Hecke.NCRingElem)
 end
 
 function Hecke.matrix(A::Array{Array{T,1},1} where T <: Hecke.NCRingElem)
-    return matrix( hcat(A...) )
+    return matrix(hcat(A...))
 end
 
 # function Hecke.matrix(R::Hecke.Nemo.AbstractAlgebra.NCRing, A::Array{Array{T,1},1} where T)
 #     return matrix( R, hcat(A...) )
 # end
 
-
-import Base./
 function /(A :: Hecke.Generic.Mat{T}, x::T)  where T
     return deepcopy(A) * inv(x)
 end
@@ -153,7 +155,6 @@ function colcat(L::Array{T,1} where T <: Hecke.Generic.Mat{S} where S)
         return T
     end
 end
-
 
 function check_square(A::AbstractMatrix)
     issquare(A) || throw(DomainError(A, "matrix must be square"))
@@ -298,7 +299,6 @@ end
 
 
 # Needs to be more robust. Also applied to the situation A is square but not of rank 1.
-#
 @doc Markdown.doc"""
     rectangular_solve(A::Hecke.MatElem{T}, b::Hecke.MatElem{T}; suppress_error=false) where T 
                                                                                     --> x ::Hecke.MatElem{T}
@@ -326,5 +326,4 @@ function rectangular_solve(A::Hecke.MatElem{T}, b::Hecke.MatElem{T}; suppress_er
     !iszero(A*x - b) && error("Linear system does not have a solution")
     return x
 end
-
 

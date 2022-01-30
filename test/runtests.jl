@@ -1,5 +1,5 @@
 
-using Dory
+using Hecke, Dory
 
 include("basic_tests.jl")
 
