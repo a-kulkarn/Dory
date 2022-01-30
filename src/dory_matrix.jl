@@ -8,7 +8,7 @@
 
 import Base: getindex, setindex, similar, /
 import Hecke: matrix, identity_matrix, diagonal_matrix
-import Hecke.AbstractAlgebra: checksquare, issquare
+import Hecke.AbstractAlgebra: check_square, issquare
 
 ##############################################################################################
 #                                                                                            #

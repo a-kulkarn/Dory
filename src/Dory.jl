@@ -25,25 +25,9 @@ import Hecke: Generic.Mat, Generic.MatElem, nmod_mat
 #  In expectation of being rolled into Hecke, the export system is designed so that Dory mimics
 # the behaviours of a submodule of Hecke.
 
-# The exclude list is for functions in Hecke that are defunct and not implemented.
-exclude = [ :AbstractAlgebra, :CoerceMap, :CoerceMap, :Hecke, :Nemo, :RealField, :ResidueRingPolyMap,
-            :_hnf_modular, :call, :can_solve, :cols, :den,  :inverse, :isid, :num,
-            :parseint, :pmaximal_order, :qq, :random_SMatSLP, :rows, :strongequal,
-            :update, :upper_triangular, :wedderburn_decomposition,
-            :window, :xgcd, :zz ]
 
-
-# TODO: remove the crazy import.
-
-# for i in names(Hecke)
-#     i in exclude && continue
-#     eval(Meta.parse("import Hecke." * string(i)))
-#     eval(Expr(:export, i))
-# end
-
-
-## End Export ##
-
+include("ShouldBeInHecke/sparse_matrix.jl")
+include("Errors.jl")
 include("dory_matrix.jl")
 include("sparse_dory_matrix.jl")
 include("padic_util.jl")
@@ -72,11 +56,9 @@ function __init__()
 
 end
 
-#####
+##################
 # Version Number
-####
-global const VERSION_NUMBER = "0.0"
-
+global const VERSION_NUMBER = "0.1"
 
 
 

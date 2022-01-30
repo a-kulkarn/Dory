@@ -16,7 +16,8 @@ end
 ##############################################################################################
 
 import Base: +, abs
-import Hecke.valuation
+import Hecke: inv, lift, nullspace, valuation
+
 
 function +(x::padic) return x end
 function /(x::padic,y::padic) return x//y end
@@ -49,14 +50,8 @@ function isapprox_zero(x::NonArchLocalFieldElem;
 end
 
 
-# Access to the precision fields.
-"""
 
-"""
-#function precision(Qp::FlintPadicField) return Qp.prec_max end
-#function prec(Qp::FlintPadicField) return Qp.prec_max end
-
-prec(Qp::FlintPadicField) = precision(Qp)
+#prec(Qp::FlintPadicField) = precision(Qp)
     
 # Potential fix for the bug with the valuation function
 # Note: there may be issues if Hecke depends on the
@@ -121,7 +116,6 @@ end
 # Flint system crashes if leading coefficients are divisible by p.
 
 # Lift termwise to a polynomial over the Flintegers.
-import Hecke.lift
 function lift(f :: Hecke.Generic.Poly{padic})
     R,_ = PolynomialRing(FlintZZ)
     return R([lift(c) for c in f.coeffs])
@@ -349,67 +343,18 @@ end
 
 #######################################################################################
 
-### "Seriously!? how is this not implemented?" block.
-import Base.findfirst
-function Base.findfirst(A::Array{Int64,1}, j::Int64)
-    return findfirst(x->(x==j), A)
-end
-
-@doc Markdown.doc"""
-    setindex!(A::SMat{T}, a::T, i::Int64, j::Int64) -> nothing
-Given a sparse matrix $A$, set $A[i,j] = a$.
-"""
-function Base.setindex!(A::SMat{T}, a::T, i::Int64, j::Int64) where {T<:Hecke.RingElem}
-    i < 1 && error("Index must be positive")
-    srow = A[i]
-    
-    p = findfirst(isequal(j), srow.pos)
-    if p === nothing
-        irange = searchsorted(srow.pos,j)
-        splice!(srow.pos, irange, [j])
-        splice!(srow.values, irange, [a])
-        A.nnz += 1
-    else
-        srow.values[p] = a
-    end
-    A[i] = srow
-    return
-end
-
-@doc Markdown.doc"""
-    sparse_identity(R::T, n::Int64) where T<:Hecke.Ring --> Id
-
-Given a ring `R`, and an integer `n`, return the `n x n`-identity matrix over the ring R.
-
-#-------------------
-
-INPUTS:
-R         -- type ::Hecke.Ring
-col_pivot -- a type, either Val(true) or Val(false), indicating whether column permutations
-             should be used to move p-adically large entries to the pivot position.
-
-"""
-function sparse_identity(R::T, n::Int64) where T<:Hecke.Ring
-    II = Hecke.sparse_matrix(R)
-    for i=1:n
-        srow = sparse_row( R, Array{Int64,1}([i]), Array{padic,1}([R(1)]) )
-        push!(II, srow)
-    end
-    return II
-end
-### End block of misery.
 
 # The index of the diagonal point is (k,k)
 function swap_prefix_of_column!(L, diagonal_index::Int64, i::Int64)
     k = diagonal_index
-    for r=1:k-1
-        L[r,k],L[r,i] = L[r,i], L[r,k]
+    for r = 1:k-1
+        L[r,k], L[r,i] = L[r,i], L[r,k]
     end
     return
 end
 
 
-"""
+@doc Markdown.doc"""
     padic_qr(A; col_pivot) --> F
 
 The return type of `F` is a QRPadicPivoted, with fields `F.Q, F.R, F.p, F.q` described below.
@@ -440,9 +385,9 @@ function padic_qr(A::Hecke.SMat{padic};
     # Allocate the rows of Ltrans ahead of time.
     Ltrans = sparse_identity(Qp, n)
     
-    U= deepcopy(A)    
-    P= Array(1:n)
-    Pcol=Array(1:m)
+    U = deepcopy(A)    
+    P = Array(1:n)
+    Pcol = Array(1:m)
 
     # Function to pivot and return the list of rows with a non-zero entry at index k.
     # in the subdiagonal.
@@ -456,7 +401,7 @@ function padic_qr(A::Hecke.SMat{padic};
                 srow = U[j]
                 if isempty(srow) break end
                 
-                rowmin, rowmindex = findmin( valuation.(srow.values) )
+                rowmin, rowmindex = findmin(valuation.(srow.values))
                 if rowmin < minn
                     minn = rowmin
                     mindex = srow.pos[rowmindex]
@@ -470,7 +415,7 @@ function padic_qr(A::Hecke.SMat{padic};
         end
 
         # Scan through the matrix to check if a rowswap is needed.
-        valuation_index_pairs = [ (valuation(U[j, piv]), j) for j=k:n if !iszero(U[j, piv]) ]        
+        valuation_index_pairs = [(valuation(U[j, piv]), j) for j=k:n if !iszero(U[j, piv])]
             
         if !isempty(valuation_index_pairs)
 
@@ -589,9 +534,9 @@ function svd(A::Hecke.Generic.MatElem{padic})
     S = transpose(G.R)
     Vt= transpose(G.Q)
     
-    @assert iszero( A[F.p,F.q] - U*S*Vt)
+    @assert iszero(A[F.p,F.q] - U*S*Vt)
 
-    return SVDPadic(U,S,Vt,F.p,F.q)
+    return SVDPadic(U, S, Vt, F.p, F.q)
 end
 
 # stable version of rank for padic matrices.
@@ -621,12 +566,11 @@ end
 Returns the list of diagonal elements in the singular value decomposition of the matrix `A`.
 """
 function singular_values(A::Hecke.MatElem{padic})
-    F = padic_qr(A,col_pivot=Val(true))
-    return [ F.R[i,i] for i=1:minimum(size(A)) ]
+    F = padic_qr(A, col_pivot=Val(true))
+    return [F.R[i,i] for i=1:minimum(size(A))]
 end
 
 # stable version of nullspace for padic matrices.
-import Hecke.nullspace
 @doc Markdown.doc"""
     nullspace(A::Hecke.MatElem{padic}) -> (nu, N)
 
@@ -698,7 +642,6 @@ end
 
 
 # stable version of inverse for p-adic matrices
-import Hecke.inv
 """
     inv( A::Hecke.MatElem{padic} ) -> Hecke.MatElem{padic}
 
@@ -810,12 +753,7 @@ function _lu_rectangular_solve(A::Hecke.MatElem{padic}, b_input::Hecke.MatElem{p
         for i in (n+1):m
             for j in 1:ncols(b)
                 if !iszero(b[i, j])
-                    println()
-                    println("--- Error data: ---")
-                    println("bad entry at ", i," ",j)
-                    println("entries: ", b[i,j])
-                    println()
-                    error("Line 461: The system is inconsistent.")
+                    throw(InconsistentSystem(A, b_input))
                 end
             end
         end
@@ -828,13 +766,10 @@ function _lu_rectangular_solve(A::Hecke.MatElem{padic}, b_input::Hecke.MatElem{p
             b[i,:] = b[i,:] - b[j,:]*F.R[i,j]
         end
         #scale = A[i, i]
-        #b.row_op(i, lambda x, _: x / scale)
-
+        
         if !iszero(b[i,:]) && iszero(F.R[i,i])
-            println()
-            println("--- Error data: ---")
-            println("bad entry at row ", i)
-            error("Line 480: The system is inconsistent.")
+            throw(InconsistentSystem(A, b_input))
+            
         elseif !iszero(F.R[i,i])
             b[i,:] *= inv(F.R[i,i])
         end
