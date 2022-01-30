@@ -10,9 +10,9 @@ function inverse_permutation(A::Array{Int64,1})
 end
 
 ##############################################################################################
-#                                                                                            #
-#                          Basic extension to padic numbers                                  #
-#                                                                                            #
+#                                                                                            
+#                          Basic extension to padic numbers                                  
+#                                                                                            
 ##############################################################################################
 
 import Base: +, abs
@@ -173,7 +173,7 @@ function norm_valuation(A::Hecke.Generic.MatElem{T}) where T <: NonArchLocalFiel
 end
 
 @doc Markdown.doc"""
-    padic_qr(A :: Hecke.Generic.MatElem{padic} ; col_pivot :: Union{Val{true},Val{false}}) --> F :: QRPadicPivoted
+    padic_qr(A :: Hecke.Generic.MatElem{padic} ; col_pivot :: Union{Val{true}, Val{false}}) --> F :: QRPadicPivoted
 
 The return type of `F` is a QRPadicPivoted, with fields `F.Q, F.R, F.p, F.q` described below.
                  
@@ -197,7 +197,7 @@ function padic_qr(A::Hecke.Generic.MatElem{padic};
 
     # Check parameters
     if hessenberg == col_pivot == Val(true)
-        error("Cannot use both col_pivot and hessenberg options in padic_qr.")
+        throw(IncompatibleOptionsError("Cannot use both `col_pivot` and `hessenberg` options in padic_qr."))
     end
     
     # Set constants
@@ -365,10 +365,11 @@ Compute the p-adic QR factorization of A. More precisely, compute matrices `Q`,`
 
 If col_pivot=Val(false), then F.q = [1,2,...,size(A,2)].
 
-#-------------------
+-------------------
 
 INPUTS:
-A         -- a matrix over Qp, A::Hecke.Generic.MatElem{padic}
+A         -- a matrix over Qp, of type Hecke.Generic.MatElem{padic}
+
 col_pivot -- a type, either Val(true) or Val(false), indicating whether column permutations
              should be used to move p-adically large entries to the pivot position.
 
@@ -642,17 +643,9 @@ end
 
 
 # stable version of inverse for p-adic matrices
-"""
-    inv( A::Hecke.MatElem{padic} ) -> Hecke.MatElem{padic}
-
-Matrix inverse. Computes matrix `B` such that A*B = I, where I is the identity matrix.
-Computed by solving the left-division N = M \\ I.
-"""
 function inv(A::Hecke.MatElem{padic})
-    if size(A,1) != size(A,2)
-        error("Matrix must be square.")
-    end
-    id = identity_matrix(A.base_ring, size(A,2))
+    check_square(A)
+    id = identity_matrix(base_ring(A), size(A,2))
     return rectangular_solve(A, id)
 end
 
@@ -660,9 +653,7 @@ function inv_unit_lower_triangular!(L::Hecke.Generic.MatElem{T} where T)
 
     m = size(L,1)::Int64
     n = size(L,2)::Int64    
-    #if !issquare(L)
-    #    error("Square matrix required for inverse")
-    #end
+
     Qp = parent(L[1,1])
     container_for_mul = Qp()
     container_for_result = Qp()
@@ -681,8 +672,8 @@ function inv_unit_lower_triangular!(L::Hecke.Generic.MatElem{T} where T)
     return
 end
 
-"""
-    inv_unit_lower_triangular( A::Hecke.MatElem{padic} ) -> Hecke.MatElem{padic}
+@doc Markdown.doc"""
+    inv_unit_lower_triangular(A::Hecke.MatElem{padic}) -> Hecke.MatElem{padic}
 
 Matrix inverse, specialized to invert a lower triangular matrix with ones on the diagonal.
 """
@@ -730,7 +721,7 @@ function _lu_rectangular_solve(A::Hecke.MatElem{padic}, b_input::Hecke.MatElem{p
     m = nrows(A)
     n = ncols(A)
     if nrows(b_input) != m
-        error("`A` and `b` must have the same number of rows.")
+        throw(DimensionMismatch("`A` and `b` must have the same number of rows."))
     end
     b = deepcopy(b_input)
 
@@ -768,7 +759,7 @@ function _lu_rectangular_solve(A::Hecke.MatElem{padic}, b_input::Hecke.MatElem{p
         #scale = A[i, i]
         
         if !iszero(b[i,:]) && iszero(F.R[i,i])
-            throw(InconsistentSystem(A, b_input))
+            throw(InconsistentSystemError(A, b_input))
             
         elseif !iszero(F.R[i,i])
             b[i,:] *= inv(F.R[i,i])
@@ -784,7 +775,7 @@ function _svd_rectangular_solve(A::Hecke.MatElem{padic}, b_input::Hecke.MatElem{
     m = nrows(A)
     n = ncols(A)
     if nrows(b_input) != m
-        error("`A` and `b` must have the same number of rows.")
+        throw(DimensionMismatch("`A` and `b` must have the same number of rows."))
     end
     b = deepcopy(b_input)
 
@@ -807,15 +798,7 @@ function _svd_rectangular_solve(A::Hecke.MatElem{padic}, b_input::Hecke.MatElem{
         for i in (n+1):m
             for j in 1:ncols(b)
                 if !iszero(b[i, j])
-                    println()
-                    println("--- Error data: ---")
-                    println("bad entry at ", i," ",j)
-                    println("entries: ", b[i,j])
-                    # println()
-                    # println(b)
-                    # println()
-                    # println(A)
-                    error("Line 533: The system is inconsistent.")
+                    throw(InconsistentSystemError(A, b))
                 end
             end
         end
@@ -825,9 +808,8 @@ function _svd_rectangular_solve(A::Hecke.MatElem{padic}, b_input::Hecke.MatElem{
     # Scaling step
     for i in 1:n
         if !iszero(b[i,:]) && iszero(F.S[i,i])
-            println()
-            println("--- Error data: ---")
-            error("The system is inconsistent: singular value: ", i," is zero, while `b[i,:]` is nonzero.")
+            throw(InconsistentSystemError(A,b))
+
         elseif !iszero(F.S[i,i])
             b[i,:] *= inv(F.S[i,i])
         end
@@ -844,30 +826,33 @@ function _svd_rectangular_solve(A::Hecke.MatElem{padic}, b_input::Hecke.MatElem{
 end
     
 function underdetermined_solve()
-    error("Not implemented.")
+    throw(NotImplemented)
     return
 end
 
 
-#************************************************************
+##############################################################################################
 #
 # Eigenvector iteration methods.
 #
-#************************************************************
+##############################################################################################
 
 
-#************************************************
+#################################################
 #  Basic inverse iteration
-#************************************************
+#################################################
 
-# Solve for an eigenvector using inverse iteration.
-# Note that the algorithm will not converge to a particular vector in general, but the norm of
-#
-# A*w - λ*w converges to zero. Here, λ is the unique eigenvalue closest to `shift`, (if it is unique).
-#
+@doc Markdown.doc"""
+    function inverse_iteration!(A, shift, V)
+    
+Solve for an eigenvector using inverse iteration.
+Note that the algorithm will not converge to a particular vector in general, but the norm of
+A*w - λ*w converges to zero. Here, λ is the unique eigenvalue closest to `shift`, (if it is unique).
+
+"""
 # TODO: Separate invariant subspaces at high valuation.
-const TESTFLAG=false
-function inverse_iteration!(A,shift,V)
+const TESTFLAG = false
+function inverse_iteration!(A, shift, V)
 
     # Note: If A is not known to precision at least one, really bad things happen.
     Qp = base_ring(A)
@@ -915,7 +900,7 @@ function inverse_iteration!(A,shift,V)
     X = try
         rectangular_solve(V, A*V, stable=true)        
     catch e
-        error("Error in inverse iteration. Likely a stability issue.")
+        throw(ConvergenceFailureError("Error in inverse iteration. Likely a stability issue."))
     end
 
     nu= trace(X)//size(X,2)
@@ -933,7 +918,7 @@ function inverse_iteration!(A,shift,V)
     min_val = minimum(vals_of_Y)
 
     if min_val <=0
-        error("Failure of convergence in inverse iteration.")
+        throw(ConvergenceFailureError("Convergence failed in inverse iteration."))
     end
 
     println("Second level iteration.")
@@ -948,7 +933,7 @@ end
 
 
 @doc Markdown.doc"""
-    inverse_iteration(A::Hecke.MatElem{padic}, shift :: padic, v ::Hecke.MatElem{padic}  ) -> Hecke.MatElem{padic}
+    inverse_iteration(A::Hecke.MatElem{padic}, shift :: padic, v ::Hecke.MatElem{padic}) -> Hecke.MatElem{padic}
 
 Iterate `v = (A-shift*I)^(-1) * v`. The inverse is cached at the beginning of the computation. The columns of the entry `v` define a subspace.
 
@@ -961,7 +946,7 @@ function inverse_iteration(A, shift, v)
 end
 
 @doc Markdown.doc"""
-    inverse_iteration_decomposition(A::Hecke.MatElem{padic}, Amp::Hecke.MatElem{nmod_mat}  ) -> values, spaces
+    inverse_iteration_decomposition(A::Hecke.MatElem{padic}, Amp::Hecke.MatElem{nmod_mat}) -> values, spaces
 
 Return types.
     values :: Array{padic,1}
@@ -1062,7 +1047,6 @@ function _eigenspaces_by_classical(A::Generic.MatElem{T}) where T
     # TODO: There will be precision errors since `charpoly` is only computed
     #       at a flat precision.
     f = charpoly(A)
-    #rts = map(x->x[1], roots(f))
     rts = roots(f)
     n = size(A,2)
     I = identity_matrix(base_ring(A), n)
@@ -1157,26 +1141,28 @@ function hessenberg!(A::Hecke.Generic.Mat{T} where T <: padic; basis=Val(true))
     end
 
     if basis==Val(true)
-        return B
+        return A, B
     else
-        return
+        return A
     end
 end
 
-"""
-    hessenberg(A::Generic.MatrixElem{T}) where {T <: padic}
-> Returns the Hessenberg form of M, i.e. an upper Hessenberg matrix
-> which is similar to M. The upper Hessenberg form has nonzero entries
-> above and on the diagonal and in the diagonal line immediately below the
-> diagonal.
-> A p-adically stable form of the algorithm is used, where pivots are 
-> selected carefully.
+@doc Markdown.doc"""
+    hessenberg(A::Generic.MatrixElem{T}; basis::Union{Val{true}, Val{false}}) where T <: padic -> Generic.MatElem{T} [, Generic.MatElem{T}]
+
+Returns the Hessenberg form of A, i.e. an upper Hessenberg matrix
+which is similar to A. The upper Hessenberg form has nonzero entries
+above and on the diagonal and in the diagonal line immediately below the
+diagonal.
+
+The transformation matrix can be returned as the second output. The transformation matrix will always
+lie in $GL_{n}(Zp)$.
 """
 function hessenberg(A::Hecke.Generic.Mat{T} where T <: padic, basis=Val(true))
-   !issquare(A) && error("Dimensions don't match in hessenberg")
-   M = deepcopy(A)
-   B = hessenberg!(M, basis=Val(true))
-   return M, B
+    check_square(A)
+    M = deepcopy(A)
+    A, B = hessenberg!(M, basis=Val(true))
+    return M, B
 end
 
 
@@ -1344,18 +1330,13 @@ The default is `inverse`, since at the moment this is the one that is implemente
 
 function eigspaces(A::Hecke.Generic.Mat{T} where T <: padic; method="power")
 
-    ## Input sanitization    
-    if size(A,1) != size(A,2)
-        error("Input matrix must be square.")
-    end
-
-    ## Set constants
-    Qp = A.base_ring
+    check_square(A)
+    Qp = base_ring(A)
     
     if iszero(A)        
-        return EigenSpaceDec(Qp, [zero(Qp)] , [identity_matrix(Qp, size(A,1))] )
-    elseif  size(A,1) == 1
-        return EigenSpaceDec(Qp, [A[1,1]] , [identity_matrix(Qp, size(A,1))] )
+        return EigenSpaceDec(Qp, [zero(Qp)] , [identity_matrix(Qp, size(A,1))])
+    elseif size(A,1) == 1
+        return EigenSpaceDec(Qp, [A[1,1]] , [identity_matrix(Qp, size(A,1))])
     end
     
     # Dispatch
@@ -1366,13 +1347,13 @@ function eigspaces(A::Hecke.Generic.Mat{T} where T <: padic; method="power")
         return _eigenspaces_by_inverse_iteration(A)
         
     elseif method == "schur" || method == "qr"
-        error("Not Implemented. However, block_shur_form is available to compute the schur form.")
+        error("Not Implemented. However, block_schur_form is available to compute the schur form.")
         
     elseif method == "power"
         return  _eigenspaces_by_power_iteration(A)
         
     else
-        error("Not Implemented")
+        throw(NotImplemented)
     end
 
 end
@@ -1402,7 +1383,7 @@ function _eigenspaces_by_inverse_iteration(A::Hecke.Generic.Mat{T} where T <: pa
     
     # FAILSAFE DURING DEVELOPMENT...
     # Fail automatically if there are large invariant subspaces mod p
-    if any( e >= 2 for (f,e) in factors_chiAp if degree(f)==1 )
+    if any(e >= 2 for (f,e) in factors_chiAp if degree(f)==1)
         error("Development Failsafe: Not implemented when roots are not squarefree") 
     end
 
@@ -1461,17 +1442,11 @@ function _eigenspaces_by_power_iteration(A::Hecke.Generic.Mat{T} where T <: padi
             # Recursive call
             E = _eigenspaces_by_power_iteration(X)
 
-            #merge
+            # Merge
             for j = 1:length(E.spaces)
                 push!(values, E.values[j])
                 push!(spaces, invariant_blocks[i]*E.spaces[j])
             end
-            
-            # for i = 1:length(E.values)
-            #     push!(values, E.values[i])
-            #     push!(spaces, E.spaces[i])
-            # end
-            
         end
         
     end

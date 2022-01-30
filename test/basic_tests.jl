@@ -46,19 +46,13 @@ end
 
     for n=1:10
         for i=1:5
-            A = random_test_matrix(Qp,n)
+            A = random_test_matrix(Qp, n)
             S, V = Dory.block_schur_form(A)
 
             @test valuation(det(V)) == 0
             @test inv(V)*S*V == A
             @test Dory.isweak_block_schur_hessenberg(S)
 
-            # if !(Dory.isweak_block_schur_hessenberg(S))
-            #     println()
-            #     display(factor(charpoly(S)))
-            #     display(factor(charpoly(modp.(S))))
-            #     display(valuation.(S))
-            # end
         end
     end
 end

@@ -1,23 +1,39 @@
 
 import Base: showerror
 
-struct InconsistentSystem <: Exception
+struct InconsistentSystemError <: Exception
     operator::Hecke.Generic.MatElem
     value::Hecke.Generic.MatElem
 end
 
-struct IncompatibleDimensions <: Exception    
+struct IncompatibleOptionsError <: Exception
+    msg
 end
 
-function showerror(io::IO, e::InconsistentSystem)
-    print(io, "Inconsistent linear system:")
-    print(io, "Matrix:")
+struct ConvergenceFailureError <: Exception
+    msg
+end
+
+struct InsufficientPrecisionError <: Exception end
+
+##############################################################################################
+#
+#   Show error functions
+#
+##############################################################################################
+
+function showerror(io::IO, e::InconsistentSystemError)
+    print(io, "Inconsistent linear system:\n")
+    print(io, "Matrix:\n")
     print(io, e.operator)
-    print(io, "Target:")
+    print(io, "\n\nTarget:\n")
     print(io, e.value)
 end
 
-function showerror(io::IO, e::IncompatibleDimensions)
-    print(io, "Incompatible dimensions in linear solve.")
+function showerror(io::IO, e::IncompatibleOptionsError)
+    print(io, "IncompatibleOptions: ", e.msg)
 end
 
+function showerror(io::IO, e::ConvergenceFailureError)
+    print(io, "Convergence Failure: ", e.msg)
+end
