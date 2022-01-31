@@ -15,12 +15,12 @@ end
 #                                                                                            
 ##############################################################################################
 
-import Base: +, abs
+import Base: +, /, abs
 import Hecke: inv, lift, nullspace, valuation
 
 
-function +(x::padic) return x end
-function /(x::padic,y::padic) return x//y end
+/(x::T, y::T) where T <: NonArchLocalFieldElem = x // y
+
 
 function isapprox(x::NonArchLocalFieldElem, y::NonArchLocalFieldElem;
                   valuation_atol::Real = min(precision(x), precision(y)),
@@ -28,7 +28,6 @@ function isapprox(x::NonArchLocalFieldElem, y::NonArchLocalFieldElem;
                   norm::Function=abs)
 
     # TODO: Implement the relative tolerance functionality, similar to Julia.
-    
     x == y && return true
     z = x - y
     
@@ -41,8 +40,7 @@ function isapprox_zero(x::NonArchLocalFieldElem;
                        atol::Real=0,
                        norm::Function=abs)
 
-    # TODO: Implement the relative tolerance functionality, similar to Julia.
-    
+    # TODO: Implement the relative tolerance functionality, similar to Julia.    
     iszero(x) && return true
     
     atol == 0 && return valuation(x) >= min(valuation_atol, precision(x))
@@ -50,22 +48,8 @@ function isapprox_zero(x::NonArchLocalFieldElem;
 end
 
 
-
-#prec(Qp::FlintPadicField) = precision(Qp)
-    
-# Potential fix for the bug with the valuation function
-# Note: there may be issues if Hecke depends on the
-# valuation being non-infinite.
-#
-# function valuation(x::padic)
-#     if iszero(x)
-#         return Inf
-#     end
-#     return Int64(x.v)
-# end
-
 # typesafe version
-function float64_valuation(x::padic)
+function float64_valuation(x::NonArchLocalFieldElem)
     if iszero(x)
         return Inf
     end
@@ -73,12 +57,12 @@ function float64_valuation(x::padic)
 end
 
 
-function abs(x::padic)
+function abs(x::NonArchLocalFieldElem)
     p = Hecke.prime(parent(x))
     return Float64(p)^(-valuation(x))
 end
 
-function modp(x::padic)
+function modp(x::NonArchLocalFieldElem)
     Fp = ResidueRing(FlintZZ,parent(x).p)
     return Fp(lift(x))
 end
@@ -88,7 +72,7 @@ function test_rings()
     return Qp = FlintPadicField(7,20), ResidueRing(FlintZZ,7)
 end
 
-function rand_padic_int(Qp::FlintPadicField)
+function rand_padic_int(Qp::NonArchLocalField)
     p = prime(Qp)
     N = precision(Qp)
     return Qp(rand(1:BigInt(p)^N))
@@ -116,7 +100,7 @@ end
 # Flint system crashes if leading coefficients are divisible by p.
 
 # Lift termwise to a polynomial over the Flintegers.
-function lift(f :: Hecke.Generic.Poly{padic})
+function lift(f :: Hecke.Generic.Poly{<:NonArchLocalFieldElem})
     R,_ = PolynomialRing(FlintZZ)
     return R([lift(c) for c in f.coeffs])
 end
@@ -124,7 +108,7 @@ end
 # This function is...kind of a hack.
 # It is also very buggy since FLINT can only handle a specific case
 # (integer polynomial, non-vanishing leading coefficient mod p)
-function factor(f :: Hecke.Generic.Poly{padic})
+function factor(f :: Hecke.Generic.Poly{<:NonArchLocalFieldElem})
     QpX = f.parent
     Qp = QpX.base_ring
     N = prec(Qp)
@@ -149,16 +133,16 @@ end
 # It turns out that the algorithm to do this is just the LU factorization
 # with pivoting.
 
-struct QRPadicPivoted
-    Q::Hecke.Generic.MatElem{padic}
-    R::Hecke.Generic.MatElem{padic}
+struct QRNonArchimedeanPivoted{T <: NonArchLocalFieldElem}
+    Q::Hecke.Generic.MatElem{T}
+    R::Hecke.Generic.MatElem{T}
     p::Array{Int64,1}
     q::Array{Int64,1}
 end
 
-struct QRPadicSparsePivoted
-    Q::Hecke.SMat{padic}
-    R::Hecke.SMat{padic}
+struct QRNonArchimedeanSparsePivoted{T <: NonArchLocalFieldElem}
+    Q::Hecke.SMat{T}
+    R::Hecke.SMat{T}
     p::Array{Int64,1}
     q::Array{Int64,1}
 end
@@ -173,9 +157,9 @@ function norm_valuation(A::Hecke.Generic.MatElem{T}) where T <: NonArchLocalFiel
 end
 
 @doc Markdown.doc"""
-    padic_qr(A :: Hecke.Generic.MatElem{padic} ; col_pivot :: Union{Val{true}, Val{false}}) --> F :: QRPadicPivoted
+    padic_qr(A :: Hecke.Generic.MatElem{<:NonArchLocalFieldElem} ; col_pivot :: Union{Val{true}, Val{false}}) --> F :: QRNonArchLocalFieldElemPivoted
 
-The return type of `F` is a QRPadicPivoted, with fields `F.Q, F.R, F.p, F.q` described below.
+The return type of `F` is a QRNonArchLocalFieldElemPivoted, with fields `F.Q, F.R, F.p, F.q` described below.
                  
 Compute the p-adic QR factorization of `A`. More precisely, compute matrices `Q`,`R`, and an arrays `p`, `q` such that 
 
@@ -191,7 +175,7 @@ INPUTS:
              should be used to move p-adically large entries to the pivot position.
 
 """
-function padic_qr(A::Hecke.Generic.MatElem{padic};
+function padic_qr(A::Hecke.Generic.MatElem{T} where T<:NonArchLocalFieldElem;
                   col_pivot=Val(false) :: Union{Val{true},Val{false}},
                   hessenberg=Val(false) :: Union{Val{true},Val{false}})
 
@@ -202,12 +186,13 @@ function padic_qr(A::Hecke.Generic.MatElem{padic};
     
     # Set constants
     R = base_ring(A)
+    T = elem_type(R)
     n = size(A,1)::Int64
     m = size(A,2)::Int64
     basezero = zero(R)
     
     L = identity_matrix(R, n)
-    Lent = L.entries::Array{padic, 2}  
+    Lent = L.entries::Array{T, 2}  
     Umat = deepcopy(A)
     U = Umat.entries
     
@@ -290,7 +275,7 @@ function padic_qr(A::Hecke.Generic.MatElem{padic};
         
         for j=k+1:row_stop
             Hecke.mul!(L[j,k],U[j,k], container_for_inv)
-            L[j,k].N = parent(L[j,k]).prec_max            # L[j,k] is really an integer.
+            L[j,k] = setprecision!(L[j,k], precision(parent(L[j,k])))  # L[j,k] is really an integer.
         end
 
         # zero the subdiagonal the of column.
@@ -315,7 +300,7 @@ function padic_qr(A::Hecke.Generic.MatElem{padic};
         end
     end
 
-    return QRPadicPivoted(L,Umat,P,Pcol)
+    return QRNonArchimedeanPivoted(L,Umat,P,Pcol)
 end
 
 function swap_prefix_of_row!(Lent, k::Int64, i::Int64)
@@ -357,7 +342,7 @@ end
 @doc Markdown.doc"""
     padic_qr(A; col_pivot) --> F
 
-The return type of `F` is a QRPadicPivoted, with fields `F.Q, F.R, F.p, F.q` described below.
+The return type of `F` is a QRNonArchPivoted, with fields `F.Q, F.R, F.p, F.q` described below.
                  
 Compute the p-adic QR factorization of A. More precisely, compute matrices `Q`,`R`, and an arrays `p`, `q` such that 
 
@@ -374,11 +359,12 @@ col_pivot -- a type, either Val(true) or Val(false), indicating whether column p
              should be used to move p-adically large entries to the pivot position.
 
 """
-function padic_qr(A::Hecke.SMat{padic};
+function padic_qr(A::Hecke.SMat{T} where T<:NonArchLocalFieldElem;
                   col_pivot=Val(false) :: Union{Val{true},Val{false}})
     
     # Set constants
-    Qp = A.base_ring
+    Qp = base_ring(A)
+    T = elem_type(Qp)
     n = size(A,1)::Int64
     m = size(A,2)::Int64
     
@@ -450,7 +436,7 @@ function padic_qr(A::Hecke.SMat{padic};
         
         # set the pivot column and determine the rows to apply elimination.
         piv = k + shift
-        rows_with_entry_at_piv = pivot_and_select_row_indices(U, Ltrans, k, piv )
+        rows_with_entry_at_piv = pivot_and_select_row_indices(U, Ltrans, k, piv)
 
         # If everything is zero, shift the algorithm to operate on the
         # right rectangular submatrix window.
@@ -466,8 +452,8 @@ function padic_qr(A::Hecke.SMat{padic};
             # as L[j,k] is really an integer.
             Ltrans[k,j] = U[j,piv]*container_for_inv
 
-            if Ltrans[k,j].N < precision(Qp)
-                Ltrans[k,j].N = precision(Qp)
+            if precision(Ltrans[k,j]) < precision(Qp)
+                Ltrans[k,j] = setprecision!(Ltrans[k,j], precision(Qp))
             end
             
             if Ltrans[k,j] != 0
@@ -484,7 +470,7 @@ function padic_qr(A::Hecke.SMat{padic};
     # The test is actually quite expensive, but we keep it for now.
     @vtime :local_QR @assert iszero(matrix(A)[P,Pcol] - transpose(matrix(Ltrans))*matrix(U))
 
-    return QRPadicSparsePivoted(transpose(Ltrans), U, P, Pcol)
+    return QRNonArchimedeanSparsePivoted(transpose(Ltrans), U, P, Pcol)
 end
 
 
@@ -492,19 +478,19 @@ end
 
 # IMPORTANT!
 # We deviate slightly from LinearAlgebra's SVD structure by putting a diagonal matrix for S.
-struct SVDPadic
-    U::Hecke.Generic.MatElem{padic}
-    S::Hecke.Generic.MatElem{padic}
-    Vt::Hecke.Generic.MatElem{padic}
+struct SVDNonArchimedean{T<:NonArchLocalFieldElem}
+    U::Hecke.Generic.MatElem{T}
+    S::Hecke.Generic.MatElem{T}
+    Vt::Hecke.Generic.MatElem{T}
     p::Array{Int64,1}
     q::Array{Int64,1}
 end
 
 # A padic analogue for svd
 @doc Markdown.doc"""
-    svd(A :: Hecke.Generic.Matelem{padic}) -> SVDPadic
+    svd(A :: Hecke.Generic.Matelem{<:NonArchLocalFieldElem}) -> SVDNonArchimedean
 
-  Compute the singular value decomposition (SVD) of A and return an SVDPadic object.
+  Compute the singular value decomposition (SVD) of A and return an SVDNonArchimedean object.
 
   A pAdic singular value decomposition is a factorization of the form
 
@@ -520,11 +506,11 @@ end
   absoute value.
 
   The return types are
-     U, S, Vt :: Hecke.Generic.MatElem{padic}
+     U, S, Vt :: Hecke.Generic.MatElem{<:NonArchLocalFieldElem}
      p,q      :: Array{Int64,1}
 
 """
-function svd(A::Hecke.Generic.MatElem{padic})
+function svd(A::Hecke.Generic.MatElem{T}) where T <: NonArchLocalFieldElem
 
     F = padic_qr(A, col_pivot=Val(true))
     G = padic_qr(transpose(F.R))
@@ -537,16 +523,16 @@ function svd(A::Hecke.Generic.MatElem{padic})
     
     @assert iszero(A[F.p,F.q] - U*S*Vt)
 
-    return SVDPadic(U, S, Vt, F.p, F.q)
+    return SVDNonArchimedean(U, S, Vt, F.p, F.q)
 end
 
 # stable version of rank for padic matrices.
 @doc Markdown.doc"""
-    rank(A::Hecke.Generic.MatElem{padic})
+    rank(A::Hecke.Generic.MatElem{<:NonArchLocalFieldElem})
 
   Compute the rank of a padic matrix by counting how many singular values satisfy `iszero(a)`.
 """
-function rank(A::Hecke.MatElem{padic})
+function rank(A::Hecke.MatElem{T}) where T <: NonArchLocalFieldElem
     n = nrows(A)
     m = ncols(A)
     F = padic_qr(A)
@@ -562,26 +548,26 @@ end
 
 # Returns the p-adic singular values of a matrix
 @doc Markdown.doc"""
-    singular_values(A::Hecke.MatElem{padic}) -> Array{padic, 1}
+    singular_values(A::Hecke.MatElem{<:NonArchLocalFieldElem}) -> Array{<:NonArchLocalFieldElem, 1}
 
 Returns the list of diagonal elements in the singular value decomposition of the matrix `A`.
 """
-function singular_values(A::Hecke.MatElem{padic})
+function singular_values(A::Hecke.MatElem{<:NonArchLocalFieldElem})
     F = padic_qr(A, col_pivot=Val(true))
     return [F.R[i,i] for i=1:minimum(size(A))]
 end
 
 # stable version of nullspace for padic matrices.
 @doc Markdown.doc"""
-    nullspace(A::Hecke.MatElem{padic}) -> (nu, N)
+    nullspace(A::Hecke.MatElem{NonArchLocalFieldElem}) -> (nu, N)
 
 Computes the nullspace of a padic matrix `A`. The dimension of the nullspace is dependent
 on the number of singular values of `A` for which `iszero(a)` is true.
 
 nu -- An Int64, which is the dimension of the nullspace.
-N  -- A matrix whose columns generate the nullspace of A. Type ::Hecke.MatElem{padic}. 
+N  -- A matrix whose columns generate the nullspace of A. Type ::Hecke.MatElem{NonArchLocalFieldElem}. 
 """
-function nullspace(A::Hecke.MatElem{padic})
+function nullspace(A::Hecke.MatElem{<:NonArchLocalFieldElem})
 
     m = nrows(A)
     n = ncols(A)
@@ -603,7 +589,7 @@ function nullspace(A::Hecke.MatElem{padic})
     return length(col_list) + max(0,n-m), hcat(Qinvt[:, col_list], Qinvt[:,(m+1):n])
 end
 
-function nullspace(A::Hecke.SMat{padic})
+function nullspace(A::Hecke.SMat{<:NonArchLocalFieldElem})
 
     m = nrows(A)
     n = ncols(A)
@@ -619,7 +605,7 @@ function nullspace(A::Hecke.SMat{padic})
         if iszero(srow)
             return true
         end
-        return minimum(valuation.(srow.values)) >= precision(A.base_ring)
+        return minimum(valuation.(srow.values)) >= precision(base_ring(A))
     end
     
     col_list = Array{Int64,1}()
@@ -643,7 +629,7 @@ end
 
 
 # stable version of inverse for p-adic matrices
-function inv(A::Hecke.MatElem{padic})
+function inv(A::Hecke.MatElem{<:NonArchLocalFieldElem})
     check_square(A)
     id = identity_matrix(base_ring(A), size(A,2))
     return rectangular_solve(A, id)
@@ -673,7 +659,7 @@ function inv_unit_lower_triangular!(L::Hecke.Generic.MatElem{T} where T)
 end
 
 @doc Markdown.doc"""
-    inv_unit_lower_triangular(A::Hecke.MatElem{padic}) -> Hecke.MatElem{padic}
+    inv_unit_lower_triangular(A::Hecke.MatElem{<:NonArchLocalFieldElem}) -> Hecke.MatElem{<:NonArchLocalFieldElem}
 
 Matrix inverse, specialized to invert a lower triangular matrix with ones on the diagonal.
 """
@@ -684,8 +670,8 @@ function inv_unit_lower_triangular(L)
 end
 
 @doc Markdown.doc"""
-    rectangular_solve(A::Hecke.MatElem{padic}, b_input::Hecke.MatElem{padic}; stable::Bool=false)
-                                                                        --> (nu :: Int64,N::Hecke.MatElem{padic})
+    rectangular_solve(A::Hecke.MatElem{T}, b_input::Hecke.MatElem{T}; stable::Bool=false) where T<:NonArchLocalFieldElem
+                                                                        -> (nu :: Int64,N::Hecke.MatElem{NonArchLocalFieldElem})
 
 Solves the linear system A*N = b. The output `nu` is the dimension of the nullspace. Parameter `stable` determines whether `padic_qr` or `svd` method is used. Default is qr (for speed).
 
@@ -693,12 +679,12 @@ WARNINGS:
 If `A,b_input` have different precisions, maximal precision output is not guarenteed.
 Underdetermined solve not implemented.
 """
-function rectangular_solve(A::Hecke.MatElem{padic}, b::Hecke.MatElem{padic}; stable::Bool=false)
+function rectangular_solve(A::Hecke.MatElem{<:NonArchLocalFieldElem}, b::Hecke.MatElem{<:NonArchLocalFieldElem}; stable::Bool=false)
     return rectangular_solve!(A, deepcopy(b), stable=stable)
 end
 
 @doc Markdown.doc"""
-    rectangular_solve!(A::Hecke.MatElem{padic}, b_input::Hecke.MatElem{padic}; stable::Bool=false)
+    rectangular_solve!(A::Hecke.MatElem{<:NonArchLocalFieldElem}, b_input::Hecke.MatElem{<:NonArchLocalFieldElem}; stable::Bool=false)
                                                                         --> (nu :: Int64,N::Hecke.MatElem{padic})
 
 Solves the linear system A*N = b inplace. The output `nu` is the dimension of the nullspace. Parameter `stable` determines whether `padic_qr` or `svd` method is used. Default is qr (for speed).
@@ -707,16 +693,16 @@ WARNINGS:
 If `A,b_input` have different precisions, maximal precision output is not guarenteed.
 Underdetermined solve not implemented.
 """
-function rectangular_solve!(A::Hecke.MatElem{padic}, b::Hecke.MatElem{padic}; stable::Bool=false)
+function rectangular_solve!(A::Hecke.MatElem{T}, b::Hecke.MatElem{T}; stable::Bool=false) where T <: NonArchLocalFieldElem
     if stable
-        return _svd_rectangular_solve(A::Hecke.MatElem{padic}, b::Hecke.MatElem{padic})
+        return _svd_rectangular_solve(A::Hecke.MatElem{T}, b::Hecke.MatElem{T})
     else
-        return _lu_rectangular_solve(A::Hecke.MatElem{padic}, b::Hecke.MatElem{padic})
+        return _lu_rectangular_solve(A::Hecke.MatElem{T}, b::Hecke.MatElem{T})
     end
 end
 
 # Specialization to lu-solve
-function _lu_rectangular_solve(A::Hecke.MatElem{padic}, b_input::Hecke.MatElem{padic})
+function _lu_rectangular_solve(A::Hecke.MatElem{T}, b_input::Hecke.MatElem{T}) where T <: NonArchLocalFieldElem
 
     m = nrows(A)
     n = ncols(A)
@@ -770,7 +756,7 @@ function _lu_rectangular_solve(A::Hecke.MatElem{padic}, b_input::Hecke.MatElem{p
 end
 
 # Specialization to svd-solve
-function _svd_rectangular_solve(A::Hecke.MatElem{padic}, b_input::Hecke.MatElem{padic})
+function _svd_rectangular_solve(A::Hecke.MatElem{T}, b_input::Hecke.MatElem{T}) where T <: NonArchLocalFieldElem
 
     m = nrows(A)
     n = ncols(A)
@@ -933,7 +919,7 @@ end
 
 
 @doc Markdown.doc"""
-    inverse_iteration(A::Hecke.MatElem{padic}, shift :: padic, v ::Hecke.MatElem{padic}) -> Hecke.MatElem{padic}
+    inverse_iteration(A::Hecke.MatElem{<:NonArchLocalFieldElem}, shift, v ::Hecke.MatElem{<:NonArchLocalFieldElem}) -> Hecke.MatElem{<:NonArchLocalFieldElem}
 
 Iterate `v = (A-shift*I)^(-1) * v`. The inverse is cached at the beginning of the computation. The columns of the entry `v` define a subspace.
 
@@ -946,11 +932,11 @@ function inverse_iteration(A, shift, v)
 end
 
 @doc Markdown.doc"""
-    inverse_iteration_decomposition(A::Hecke.MatElem{padic}, Amp::Hecke.MatElem{nmod_mat}) -> values, spaces
+    inverse_iteration_decomposition(A::Hecke.MatElem{<:NonArchLocalFieldElem}, Amp::Hecke.MatElem{nmod_mat}) -> values, spaces
 
 Return types.
-    values :: Array{padic,1}
-    spaces :: Array{ Hecke.MatElem{padic}, 1}
+    values :: Array{<:NonArchLocalFieldElem,1}
+    spaces :: Array{ Hecke.MatElem{<:NonArchLocalFieldElem}, 1}
 
 Internal function. Compute an invariant subspace decomposition of `A` using its reduction mod-p `Amp`.
 Makes one call to `inverse_iteration` for each eigenvalue of `Amp`. 
@@ -1062,12 +1048,12 @@ end
 
 # Also return a basis by default.
 @doc Markdown.doc"""
-    hessenberg!(A::Hecke.Generic.Mat{T} where T <: padic; basis=Val(true)) --> nothing or B::Hecke.Generic.Mat{T}
+    hessenberg!(A::Hecke.Generic.Mat{<:NonArchLocalFieldElem}; basis=Val(true)) --> nothing or B::Hecke.Generic.Mat{T}
 
 Computes the Hessenberg form of `A` inplace. If `basis=Val(true)`, also return the matrix B such that
     AV = VB
 """
-function hessenberg!(A::Hecke.Generic.Mat{T} where T <: padic; basis=Val(true))
+function hessenberg!(A::Hecke.Generic.Mat{T} where T <: NonArchLocalFieldElem; basis=Val(true))
     !issquare(A) && DimensionMismatch("Dimensions don't match in hessenberg")
     R = base_ring(A)
     N = precision(R)
@@ -1085,11 +1071,11 @@ function hessenberg!(A::Hecke.Generic.Mat{T} where T <: padic; basis=Val(true))
 
     for m = 1:n - 2
 
-        val_list = float64_valuation.(A.entries[m+1:n , m])
+        val_list = float64_valuation.(A[m+1:n , m])
         minn, row_pivot_index = findmin(val_list);
-        if minn==Inf continue end
 
-        i = row_pivot_index + m;
+        if minn==Inf continue end
+        i = row_pivot_index[1] + m;            
         
         # Perform a row/column swap to move the pivot to the subdiagonal
         if i > m+1
@@ -1148,7 +1134,7 @@ function hessenberg!(A::Hecke.Generic.Mat{T} where T <: padic; basis=Val(true))
 end
 
 @doc Markdown.doc"""
-    hessenberg(A::Generic.MatrixElem{T}; basis::Union{Val{true}, Val{false}}) where T <: padic -> Generic.MatElem{T} [, Generic.MatElem{T}]
+    hessenberg(A::Generic.MatrixElem{T}; basis::Union{Val{true}, Val{false}}) where T<:NonArchLocalFieldElem -> Generic.MatElem{T} [, Generic.MatElem{T}]
 
 Returns the Hessenberg form of A, i.e. an upper Hessenberg matrix
 which is similar to A. The upper Hessenberg form has nonzero entries
@@ -1158,7 +1144,7 @@ diagonal.
 The transformation matrix can be returned as the second output. The transformation matrix will always
 lie in $GL_{n}(Zp)$.
 """
-function hessenberg(A::Hecke.Generic.Mat{T} where T <: padic, basis=Val(true))
+function hessenberg(A::Hecke.Generic.Mat{T} where T <: NonArchLocalFieldElem, basis=Val(true))
     check_square(A)
     M = deepcopy(A)
     A, B = hessenberg!(M, basis=Val(true))
@@ -1193,7 +1179,7 @@ end
 #################################################
 
 @doc Markdown.doc"""
-    block_schur_form(A::Hecke.Generic.Mat{T} where T <: padic) --> B,V :: Hecke.Generic.Mat{T}
+    block_schur_form(A::Hecke.Generic.Mat{<:NonArchLocalFieldElem}) --> B,V :: Hecke.Generic.Mat{T}
 
 Computes the block schur form `B` of a padic matrix `A`, where the
 blocks correspond to the different eigenvalues of `A modulo p`. The outputs satisfy
@@ -1203,7 +1189,7 @@ NOTE:
 Presently, `block_shur_form` does not attempt to further refine the blocks recursively. Theoretical
 details need to be worked out to make the best practical improvements of the algorithm. 
 """
-function block_schur_form(A::Hecke.Generic.Mat{T} where T <: padic;
+function block_schur_form(A::Hecke.Generic.Mat{T} where T <: NonArchLocalFieldElem;
                           shift = default_rayleigh_shift,
                           iter_bound = default_iter_bound)
 
@@ -1302,16 +1288,16 @@ end
 
 function _normalize_matrix(A)
 
-    Qp = A.base_ring
-    vals_of_A = valuation.(A.entries)
+    Qp = base_ring(A)
+    vals_of_A = valuation.(A)
     min_val = minimum(vals_of_A)
 
-    scale_factor = Qp(Qp.p)^max(0,Int64(-min_val))
+    scale_factor = uniformizer(Qp)^Int64(-min_val)
     return scale_factor * A, scale_factor
 end
 
-"""
-    eigvecs(A::Hecke.Generic.Mat{T} where T <: padic)
+@doc Markdown.doc"""
+    eigspaces(A::Hecke.Generic.Mat{T} where T<:NonArchLocalFieldElem)
 
 Compute the eigenvectors of a padic matrix iteratively.
 
@@ -1328,7 +1314,7 @@ The default is `inverse`, since at the moment this is the one that is implemente
 
 """
 
-function eigspaces(A::Hecke.Generic.Mat{T} where T <: padic; method="power")
+function eigspaces(A::Hecke.Generic.Mat{T} where T <: NonArchLocalFieldElem; method="power")
 
     check_square(A)
     Qp = base_ring(A)
@@ -1358,7 +1344,7 @@ function eigspaces(A::Hecke.Generic.Mat{T} where T <: padic; method="power")
 
 end
 
-function _modp_charpoly_data(A::Hecke.Generic.Mat{T} where T <: padic)
+function _modp_charpoly_data(A::Hecke.Generic.Mat{T} where T <: NonArchLocalFieldElem)
     Aint, scale_factor  = _normalize_matrix(A)
     Amp   = modp.(Aint)
     chiAp = charpoly(Amp)
@@ -1366,19 +1352,20 @@ function _modp_charpoly_data(A::Hecke.Generic.Mat{T} where T <: padic)
     return Aint, Amp, chiAp
 end
 
-function _eigenspaces_by_inverse_iteration(A::Hecke.Generic.Mat{T} where T <: padic)
+function _eigenspaces_by_inverse_iteration(A::Hecke.Generic.Mat{T} where T <: NonArchLocalFieldElem)
     
     # Extract data from the reduction modulo p
-    Qp = A.base_ring
+    Qp = base_ring(A)
+    T = elem_type(Qp)
     Aint, Amp, chiAp = _modp_charpoly_data(A)    
     factors_chiAp = Hecke.factor(chiAp)
 
         
     if isirreducible(chiAp)
-        empty_array = Array{padic,1}()
-        empty_spaces_array = Array{ Hecke.Generic.Mat{padic}, 1}()
+        empty_array = Array{T,1}()
+        empty_spaces_array = Array{Hecke.Generic.Mat{T}, 1}()
         
-        return EigenSpaceDec(Qp, empty_array , empty_spaces_array )
+        return EigenSpaceDec(Qp, empty_array , empty_spaces_array)
     end
     
     # FAILSAFE DURING DEVELOPMENT...
@@ -1394,17 +1381,18 @@ function _eigenspaces_by_inverse_iteration(A::Hecke.Generic.Mat{T} where T <: pa
     
 end
 
-function _eigenspaces_by_power_iteration(A::Hecke.Generic.Mat{T} where T <: padic)
+function _eigenspaces_by_power_iteration(A::Hecke.Generic.Mat{T} where T <: NonArchLocalFieldElem)
 
-    Qp = A.base_ring
+    Qp = base_ring(A)
+    T = elem_type(Qp)
     Aint, Amp, chiAp = _modp_charpoly_data(A)
     factors_chiAp = Hecke.factor(chiAp)
     
-    empty_array = Array{padic,1}()
-    empty_spaces_array = Array{ Hecke.Generic.Mat{padic}, 1}()    
+    empty_array = Array{T,1}()
+    empty_spaces_array = Array{Hecke.Generic.Mat{T}, 1}()    
         
     if isirreducible(chiAp)        
-        return EigenSpaceDec(Qp, empty_array , empty_spaces_array )
+        return EigenSpaceDec(Qp, empty_array, empty_spaces_array)
     end
 
     factor_multiplicities = collect(Base.values(factors_chiAp.fac))
@@ -1420,7 +1408,7 @@ function _eigenspaces_by_power_iteration(A::Hecke.Generic.Mat{T} where T <: padi
             println()
             println("WARNING: Classical Algorithm not implemented. Skipping this eigenvalue...")
             println()
-            EigenSpaceDec(Qp, empty_array , empty_spaces_array )
+            EigenSpaceDec(Qp, empty_array , empty_spaces_array)
         end
     end
 
