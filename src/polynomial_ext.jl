@@ -8,11 +8,11 @@ export monomials_of_degree, dense_coefficients
 Given a list of variables X from a polynomial ring, return all monomials of degrees specified by `itr`.
 `itr` can a list, iterator, or a single number.
 """
-function monomials_of_degree(X::Vector{S} where S <: Hecke.MPolyElem{T} where T  ,itr)
+function monomials_of_degree(X::Vector{S} where S <: Hecke.MPolyElem{T} where T, itr)
     return vcat([monomials_of_degree(X,d) for d in itr]...)
 end
 
-function monomials_of_degree(X::Vector{S} where S <: Hecke.MPolyElem{T} where T ,d::Int64)
+function monomials_of_degree(X::Vector{S} where S <: Hecke.MPolyElem{T} where T, d::Int64)
 
     # Edge case returns
     isempty(X) && error("Variables required in input")
