@@ -171,7 +171,7 @@ function issquare(A::AbstractMatrix)
     return size(A,1) == size(A,2)
 end
 
-import Base.*
+import Hecke.*
 function *(a::fmpz, A::Hecke.MatElem)
     return base_ring(A)(a) * A
 end
