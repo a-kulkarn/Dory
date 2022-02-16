@@ -1,6 +1,6 @@
 name = "Dory"
 uuid = "7810ee48-929a-11e9-02ca-05eb922bb063"
-authors = ["Avi <avinash@mis.mpg.de>"]
+authors = ["Avinash Kulkarni <avinash.a.kulkarni@dartmouth.edu>"]
 version = "0.1.0"
 
 [deps]

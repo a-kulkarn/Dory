@@ -19,13 +19,14 @@ export /, valuation, abs, modp, test_rings, rand, rand_padic_int, random_test_ma
 
 using Hecke, Distributed, Markdown
 import Hecke: Generic.Mat, Generic.MatElem, nmod_mat
-
+import Hecke: AbstractAlgebra
 
 ## Export the namespace of Hecke for use after Dory
 #  In expectation of being rolled into Hecke, the export system is designed so that Dory mimics
 # the behaviours of a submodule of Hecke.
 
-
+#include("ShouldBeInHecke/HeckeTypes.jl")
+#include("ShouldBeInHecke/LocalLaurent.jl")
 include("ShouldBeInHecke/sparse_matrix.jl")
 include("Errors.jl")
 include("dory_matrix.jl")

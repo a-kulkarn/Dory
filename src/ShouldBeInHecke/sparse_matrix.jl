@@ -29,7 +29,7 @@ function Base.setindex!(A::SMat{T}, a::T, i::Int64, j::Int64) where {T<:Hecke.Ri
 end
 
 @doc Markdown.doc"""
-    sparse_identity(R::T, n::Int64) where T<:Hecke.Ring --> Id
+    sparse_identity(R::T, n::Int64) where T<:Hecke.Ring -> Id
 
 Given a ring `R`, and an integer `n`, return the `n x n`-identity matrix over the ring R.
 
