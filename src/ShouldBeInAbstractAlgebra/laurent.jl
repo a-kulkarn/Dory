@@ -6,7 +6,7 @@
 #                                                                                            
 ##############################################################################################
 
-import Hecke: precision, setprecision!, uniformizer
+import Hecke: precision, setprecision!, uniformizer, ResidueField
 
 function precision(R::Hecke.Generic.LaurentSeriesField)
     return R.prec_max
@@ -14,6 +14,23 @@ end
 
 function uniformizer(R::Hecke.Generic.LaurentSeriesField)
     return gen(R)
+end
+
+function ResidueField(Q::Hecke.Generic.LaurentSeriesField)
+    k = base_ring(Q)
+    T = elem_type(Q)
+    S = elem_type(k)
+    pro = function(x)
+        v = valuation(x)
+        v < 0 && error("elt non integral")
+        z = coeff(x, 0)
+        return z
+    end
+    lif = function(x)
+        z = Q(x)
+        return z
+    end
+    return k, MapFromFunc(pro, lif, Q, k)
 end
 
 ##############################################################################################
