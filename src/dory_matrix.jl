@@ -84,6 +84,12 @@ function Base.copyto!(X::Hecke.nmod_mat, bc::bcstyle)
     return X
 end
 
+# ... and gfp_mat
+function Base.copyto!(X::Hecke.gfp_mat, bc::bcstyle)
+    Y = bc.args[1]
+    X = matrix(X.base_ring, bc.f.(Y.entries))
+    return X
+end
 
 function Base.copyto!(X::Array{T,2} where T, bc::bcstyle)
     Y = bc.args[1]
@@ -164,6 +170,12 @@ end
 function issquare(A::AbstractMatrix)
     return size(A,1) == size(A,2)
 end
+
+import Base.*
+function *(a::fmpz, A::Hecke.MatElem)
+    return base_ring(A)(a) * A
+end
+
 
 ##############################################################################################
 #                                                                                            

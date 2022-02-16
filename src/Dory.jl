@@ -27,6 +27,7 @@ import Hecke: AbstractAlgebra
 
 #include("ShouldBeInHecke/HeckeTypes.jl")
 #include("ShouldBeInHecke/LocalLaurent.jl")
+include("ShouldBeInAbstractAlgebra/laurent.jl")
 include("ShouldBeInHecke/sparse_matrix.jl")
 include("Errors.jl")
 include("dory_matrix.jl")
