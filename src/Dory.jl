@@ -30,6 +30,7 @@ include("ShouldBeInHecke/sparse_matrix.jl")
 include("Errors.jl")
 include("dory_matrix.jl")
 include("padic_util.jl")
+include("linear_algebra.jl")
 include("polynomial_ext.jl")
 
 

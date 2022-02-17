@@ -34,7 +34,7 @@ Base.BroadcastStyle(::Type{<:Hecke.Generic.MatSpaceElem{T}} where T) = MyStyle()
 Base.broadcastable(A::Hecke.Generic.MatSpaceElem{T} where T) = deepcopy(A)
 
 
-function Base.similar(bc::bcstyle,t::Type{T} where T<:NCRingElem)
+function Base.similar(bc::bcstyle, t::Type{T} where T<:NCRingElem)
     # Scan the inputs for a nemo matrix:
     A = find_nemo_mat(bc)
     
@@ -47,7 +47,7 @@ function Base.similar(bc::bcstyle,t::Type{T} where T<:NCRingElem)
     init = fill(val, size(A)[1], size(A)[2])
 
     if typeof(val) <: NCRingElem
-        return matrix(val.parent, init)
+        return matrix(parent(val), init)
     else
         return init
     end
@@ -55,7 +55,7 @@ end
 
 # In the case the output type has no parent, or doesn't make sense as a matrix, or is a
 # Julia default type (like Int64), return an Array
-function Base.similar(bc::bcstyle,t::Type{T} where T)
+function Base.similar(bc::bcstyle, t::Type{T} where T)
     # Scan the inputs for a nemo matrix:
     A = find_nemo_mat(bc)
     
@@ -70,7 +70,7 @@ function Base.similar(bc::bcstyle,t::Type{T} where T)
 end
 
 
-function Base.copyto!(X::Hecke.Generic.MatSpaceElem{T} where T, bc::bcstyle)
+function Base.copyto!(X::Hecke.Generic.MatElem{T} where T, bc::bcstyle)
     Y = bc.args[1]
     X.entries = bc.f.(Y.entries)
     X.base_ring = Y.base_ring    
