@@ -15,6 +15,7 @@ end
 #                                                                                            
 ##############################################################################################
 
+DiscreteValuedField = Union{NonArchLocalField, Hecke.Generic.LaurentSeriesField}
 DiscreteValuedFieldElem = Union{NonArchLocalFieldElem, Hecke.Generic.LaurentSeriesFieldElem}
 
 ##############################################################################################
@@ -87,18 +88,25 @@ function test_rings()
     return Qp = FlintPadicField(7,20), ResidueRing(FlintZZ,7)
 end
 
-function rand_padic_int(Qp::NonArchLocalField)
+function randint(K::Hecke.Generic.LaurentSeriesField)
+    pi = uniformizer(K)
+    N = precision(K)
+    F = base_ring(K)
+    
+    return sum(pi^i * F(rand(Int)) for i=0:N-1)
+end
+
+function randint(Qp::Hecke.FlintPadicField)
     p = prime(Qp)
     N = precision(Qp)
     return Qp(rand(1:BigInt(p)^N))
 end
 
-
 function random_test_matrix(Qp,n=4)
     A = matrix(Qp, fill(zero(Qp),n,n))
     for i=1:n
         for j=1:n
-            A[i,j] = rand_padic_int(Qp)
+            A[i,j] = randint(Qp)
         end
     end
     return A
@@ -206,7 +214,7 @@ function padic_qr(A::Hecke.Generic.MatElem{T} where T<:DiscreteValuedFieldElem;
     m = size(A,2)::Int64
     basezero = zero(R)
     
-    L = identity_matrix(R, n)
+    L = unaliased_identity_matrix(R, n)
     Lent = L.entries::Array{T, 2}  
     Umat = deepcopy(A)
     U = Umat.entries
@@ -646,7 +654,7 @@ end
 # stable version of inverse for p-adic matrices
 function inv(A::Hecke.MatElem{<:DiscreteValuedFieldElem})
     check_square(A)
-    id = identity_matrix(base_ring(A), size(A,2))
+    id = unaliased_identity_matrix(base_ring(A), size(A,2))
     return rectangular_solve(A, id)
 end
 
@@ -857,7 +865,7 @@ function inverse_iteration!(A, shift, V)
 
     # Note: If A is not known to precision at least one, really bad things happen.
     Qp = base_ring(A)
-    In = identity_matrix(Qp, size(A,1))
+    In = unaliased_identity_matrix(Qp, size(A,1))
     B  = A - shift * In
     
     if rank(B) < ncols(B)
@@ -873,7 +881,7 @@ function inverse_iteration!(A, shift, V)
         return V / V[m]
     end
     
-    pow = rectangular_solve(B, identity_matrix(B.base_ring, size(B,1)), stable=true)
+    pow = rectangular_solve(B, unaliased_identity_matrix(B.base_ring, size(B,1)), stable=true)
 
     if TESTFLAG
         println("---pow---")
@@ -905,7 +913,7 @@ function inverse_iteration!(A, shift, V)
     end
 
     nu= trace(X)//size(X,2)
-    Y = X - nu*identity_matrix(Qp,size(X,2))
+    Y = X - nu*unaliased_identity_matrix(Qp,size(X,2))
     
     if iszero(Y)
         # In this case, the eigenvectors are at their maximum refinement.
@@ -1012,7 +1020,7 @@ function power_iteration_decomposition(A, Amp)
 
         # Apply power iteration step.
 
-        B = A - appx_eval * identity_matrix(Qp,size(A,1))
+        B = A - appx_eval * unaliased_identity_matrix(Qp,size(A,1))
 
         for j=1:ceil(log2(M*N))
             B = B^2
@@ -1050,7 +1058,7 @@ function _eigenspaces_by_classical(A::Generic.MatElem{T}) where T
     f = charpoly(A)
     rts = roots(f)
     n = size(A,2)
-    I = identity_matrix(base_ring(A), n)
+    I = unaliased_identity_matrix(base_ring(A), n)
     
     return EigenSpaceDec(base_ring(A), T[rt for rt in rts], Generic.MatElem{T}[nullspace(A - rt*I)[2] for rt in rts])
 end
@@ -1211,7 +1219,7 @@ function block_schur_form(A::Hecke.Generic.Mat{T} where T <: DiscreteValuedField
     Qp = base_ring(A)
     N = precision(Qp)
 
-    iszero(A) && return A, identity_matrix(base_ring(A), ncols(A))
+    iszero(A) && return A, unaliased_identity_matrix(base_ring(A), ncols(A))
     
     # Extract data from the reduction modulo p
     Aint, scale_factor  = _normalize_matrix(A)
@@ -1241,7 +1249,7 @@ function block_schur_form(A::Hecke.Generic.Mat{T} where T <: DiscreteValuedField
     ####################################################
 
     B, V = hessenberg(A)    
-    id = identity_matrix(Qp, size(B,1))
+    id = unaliased_identity_matrix(Qp, size(B,1))
 
     # @info "block_schur_form, Hessenberg" precision.(B)
     
@@ -1335,9 +1343,9 @@ function eigspaces(A::Hecke.Generic.Mat{T} where T <: DiscreteValuedFieldElem; m
     Qp = base_ring(A)
     
     if iszero(A)        
-        return EigenSpaceDec(Qp, [zero(Qp)] , [identity_matrix(Qp, size(A,1))])
+        return EigenSpaceDec(Qp, [zero(Qp)] , [unaliased_identity_matrix(Qp, size(A,1))])
     elseif size(A,1) == 1
-        return EigenSpaceDec(Qp, [A[1,1]] , [identity_matrix(Qp, size(A,1))])
+        return EigenSpaceDec(Qp, [A[1,1]] , [unaliased_identity_matrix(Qp, size(A,1))])
     end
     
     # Dispatch

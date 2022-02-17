@@ -44,7 +44,7 @@ col_pivot -- a type, either Val(true) or Val(false), indicating whether column p
 function sparse_identity(R::T, n::Int64) where T<:Hecke.Ring
     II = Hecke.sparse_matrix(R)
     for i=1:n
-        srow = sparse_row( R, Array{Int64,1}([i]), Array{padic,1}([R(1)]) )
+        srow = sparse_row(R, [i], [one(R)])
         push!(II, srow)
     end
     return II

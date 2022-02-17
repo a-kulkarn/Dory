@@ -33,6 +33,10 @@ function ResidueField(Q::Hecke.Generic.LaurentSeriesField)
     return k, MapFromFunc(pro, lif, Q, k)
 end
 
+function (R::Hecke.Generic.LaurentSeriesField)(a::Int64)
+    return R(base_ring(R)(a))
+end
+
 ##############################################################################################
 #                                                                                            
 #    Element functionality

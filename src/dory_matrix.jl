@@ -183,11 +183,11 @@ end
 #                                                                                            
 ##############################################################################################
 
-# An actually sensible version of diagonal_matrix
-function diagonal_matrix(x::NonArchLocalFieldElem, n::Int, m::Int)
-    D = Hecke.MatrixSpace(parent(x), n, m)()
-    for i = 1:min(n, m)
-        D[i,i] = deepcopy(x)
+# An actually sensible version of identity_matrix
+function unaliased_identity_matrix(R, n::Int)
+    D = Hecke.MatrixSpace(R, n, n)()
+    for i = 1:n
+        D[i,i] = deepcopy(one(R))
     end
     return D
 end

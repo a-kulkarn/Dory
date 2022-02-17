@@ -15,7 +15,7 @@ module Dory
 
 export broadcast, iterate, collect, matrix, rectangular_solve, my_nullspace, eigen, eigvecs, eigspaces, MyEigen
 
-export /, valuation, abs, modp, test_rings, rand, rand_padic_int, random_test_matrix, padic_qr, inverse_iteration, singular_values
+export /, valuation, abs, modp, test_rings, rand, randint, random_test_matrix, padic_qr, inverse_iteration, singular_values
 
 using Hecke, Distributed, Markdown
 import Hecke: Generic.Mat, Generic.MatElem, nmod_mat
@@ -25,8 +25,6 @@ import Hecke: AbstractAlgebra
 #  In expectation of being rolled into Hecke, the export system is designed so that Dory mimics
 # the behaviours of a submodule of Hecke.
 
-#include("ShouldBeInHecke/HeckeTypes.jl")
-#include("ShouldBeInHecke/LocalLaurent.jl")
 include("ShouldBeInAbstractAlgebra/laurent.jl")
 include("ShouldBeInHecke/sparse_matrix.jl")
 include("Errors.jl")
