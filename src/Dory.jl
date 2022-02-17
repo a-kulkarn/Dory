@@ -29,7 +29,6 @@ include("ShouldBeInAbstractAlgebra/laurent.jl")
 include("ShouldBeInHecke/sparse_matrix.jl")
 include("Errors.jl")
 include("dory_matrix.jl")
-include("sparse_dory_matrix.jl")
 include("padic_util.jl")
 include("polynomial_ext.jl")
 
