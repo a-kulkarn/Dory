@@ -105,11 +105,10 @@ find_nemo_mat(a::Hecke.Generic.MatSpaceElem, rest) = a
 find_nemo_mat(::Any, rest) = find_nemo_mat(rest)
 
 
-#### end broadcast interface.
-
-
 ###################################################################
-#  Conveinence Interface
+#
+#  Indexing
+#
 ###################################################################
 
 function Base.getindex(A::Hecke.Generic.MatSpaceElem{T} where T, koln::Colon, I::Array{Int64,1})
@@ -146,10 +145,6 @@ function Hecke.matrix(A::Array{Array{T,1},1} where T <: Hecke.NCRingElem)
     return matrix(hcat(A...))
 end
 
-# function Hecke.matrix(R::Hecke.Nemo.AbstractAlgebra.NCRing, A::Array{Array{T,1},1} where T)
-#     return matrix( R, hcat(A...) )
-# end
-
 function /(A :: Hecke.Generic.Mat{T}, x::T)  where T
     return deepcopy(A) * inv(x)
 end
@@ -171,10 +166,10 @@ function issquare(A::AbstractMatrix)
     return size(A,1) == size(A,2)
 end
 
-import Hecke.*
-function *(a::fmpz, A::Hecke.MatElem)
-    return base_ring(A)(a) * A
-end
+# import Hecke.*
+# function *(a::fmpz, A::Hecke.MatElem)
+#     return base_ring(A)(a) * A
+# end
 
 
 ##############################################################################################
