@@ -37,7 +37,7 @@ Given a polynomial ring, return all monomials of degrees specified by `itr`.
 """
 function monomials_of_degree(R::Hecke.MPolyRing{T} where T, ds)
     X = gens(R)
-    return monomials_of_degree(X,ds)
+    return monomials_of_degree(X, ds)
 end
 
 
@@ -53,18 +53,6 @@ function dense_coefficients(f::Hecke.MPolyElem{T}) where T <: RingElement
     mons = monomials_of_degree(gens(R), 0:total_degree(f))
     return [coeff(f, m) for m in mons]
 end
-
-
-@doc Markdown.doc"""
-    coeff(f :: Hecke.MPolyElem{T}, m :: Hecke.MPolyElem{T}) --> c :: T
-
-Returns the coefficient of the monomial `m` in `f`. 
-
-Note: docstring should be moved to Nemo.
-"""
-# function Hecke.coeff(f :: Hecke.MPolyElem{T}, m :: Hecke.MPolyElem{T}) where T
-#     return Hecke.coeff(f, exponent_vector(m,1))
-# end
 
 @doc Markdown.doc"""
     coeff(f::Hecke.MPolyElem{T}, L) where T <: RingElement

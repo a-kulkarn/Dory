@@ -52,3 +52,6 @@ function _unsafe_minus!(a::Hecke.Generic.LaurentSeriesFieldElem, b::Hecke.Generi
     z = add!(a, a, -b)
     return z
 end
+
+import Hecke.Generic: promote_rule
+promote_rule(::Type{fmpz}, ::Type{T}) where {T<:NCRingElem} = T
