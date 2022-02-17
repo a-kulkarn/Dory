@@ -193,7 +193,9 @@ function unaliased_identity_matrix(R, n::Int)
 end
 
 function _has_any_shared_refs(B)
-    boo = any(B[i,j] === B[k,l] for i=1:size(B,1) for j=1:size(B,1) for k=1:size(B,1) for l=1:size(B,1) if (i != k || j != l))
+    n = size(B,1)
+    m = size(B,2)
+    boo = any(B[i,j] === B[k,l] for i=1:n, j=1:m, k=1:n, l=1:m if (i != k || j != l))
     return boo
 end
 
@@ -203,9 +205,6 @@ end
 #                                                                                            #
 ##############################################################################################
 
-# BUG:
-# nullspace(x::fmpz_mat) in Nemo at /Users/avinash/.julia/packages/Nemo/XNd31/src/flint/fmpz_mat.jl:889
-# Fails to compute nullspace for zero matrix.
 
 ## Make things a little more consistent with the other Julia types
 @doc Markdown.doc"""
