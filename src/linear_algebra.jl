@@ -35,20 +35,20 @@ function norm_valuation(A::Hecke.Generic.MatElem{T}) where T <: DiscreteValuedFi
 end
 
 @doc Markdown.doc"""
-    padic_qr(A :: Hecke.Generic.MatElem{<:DiscreteValuedFieldElem} ; col_pivot :: Union{Val{true}, Val{false}}) --> F :: QRDiscreteValuedFieldElemPivoted
+    padic_qr(A :: Hecke.Generic.MatElem{<:DiscreteValuedFieldElem} ; col_pivot :: Union{Val{true}, Val{false}}) -> F :: QRDiscreteValuedFieldElemPivoted
 
-The return type of `F` is a QRDiscreteValuedFieldElemPivoted, with fields `F.Q, F.R, F.p, F.q` described below.
-                 
 Compute the p-adic QR factorization of `A`. More precisely, compute matrices `Q`,`R`, and an arrays `p`, `q` such that 
 
-    A[F.p,F.q] = Q*R
+    A[F.p,F.q] = F.Q * F.R
 
 If `col_pivot=Val(false)`, then `F.q = [1,2,...,size(A,2)]`.
 
 #-------------------
 
 INPUTS:
+
 `A`         -- a matrix over Qp
+
 `col_pivot` -- a type, either `Val(true)` or `Val(false)`, indicating whether column permutations
              should be used to move p-adically large entries to the pivot position.
 
@@ -201,9 +201,9 @@ function _unsafe_minus!(x::padic, y::padic)
 end
 
 #######################################################################################
-
+#
 # Sparse QR-algorithm
-
+#
 #######################################################################################
 
 
@@ -216,27 +216,6 @@ function swap_prefix_of_column!(L, diagonal_index::Int64, i::Int64)
     return
 end
 
-
-@doc Markdown.doc"""
-    padic_qr(A; col_pivot) --> F
-
-The return type of `F` is a QRNonArchPivoted, with fields `F.Q, F.R, F.p, F.q` described below.
-                 
-Compute the p-adic QR factorization of A. More precisely, compute matrices `Q`,`R`, and an arrays `p`, `q` such that 
-
-    A[F.p,F.q] = Q*R
-
-If col_pivot=Val(false), then F.q = [1,2,...,size(A,2)].
-
--------------------
-
-INPUTS:
-A         -- a matrix over Qp, of type Hecke.Generic.MatElem{padic}
-
-col_pivot -- a type, either Val(true) or Val(false), indicating whether column permutations
-             should be used to move p-adically large entries to the pivot position.
-
-"""
 function padic_qr(A::Hecke.SMat{T} where T<:DiscreteValuedFieldElem;
                   col_pivot=Val(false) :: Union{Val{true},Val{false}})
     
@@ -408,7 +387,7 @@ end
 @doc Markdown.doc"""
     rank(A::Hecke.Generic.MatElem{<:DiscreteValuedFieldElem})
 
-  Compute the rank of a padic matrix by counting how many singular values satisfy `iszero(a)`.
+Compute the rank of a padic matrix by counting how many singular values satisfy `iszero(a)`.
 """
 function rank(A::Hecke.MatElem{T}) where T <: DiscreteValuedFieldElem
     n = nrows(A)
@@ -435,7 +414,7 @@ function singular_values(A::Hecke.MatElem{<:DiscreteValuedFieldElem})
     return [F.R[i,i] for i=1:minimum(size(A))]
 end
 
-# stable version of nullspace for padic matrices.
+
 @doc Markdown.doc"""
     nullspace(A::Hecke.MatElem{DiscreteValuedFieldElem}) -> (nu, N)
 
@@ -533,7 +512,7 @@ function inv_unit_lower_triangular!(L::Hecke.Generic.MatElem{T} where T)
         end
     end
 
-    return
+    return L
 end
 
 @doc Markdown.doc"""
@@ -543,8 +522,7 @@ Matrix inverse, specialized to invert a lower triangular matrix with ones on the
 """
 function inv_unit_lower_triangular(L)
     L2 = deepcopy(L)
-    inv_unit_lower_triangular!(L2)
-    return L2
+    return inv_unit_lower_triangular!(L2)
 end
 
 @doc Markdown.doc"""
@@ -706,6 +684,9 @@ end
 #  Basic inverse iteration
 #################################################
 
+# TODO: Separate invariant subspaces at high valuation.
+const TESTFLAG = false
+
 @doc Markdown.doc"""
     function inverse_iteration!(A, shift, V)
     
@@ -714,8 +695,6 @@ Note that the algorithm will not converge to a particular vector in general, but
 A*w - λ*w converges to zero. Here, λ is the unique eigenvalue closest to `shift`, (if it is unique).
 
 """
-# TODO: Separate invariant subspaces at high valuation.
-const TESTFLAG = false
 function inverse_iteration!(A, shift, V)
 
     # Note: If A is not known to precision at least one, really bad things happen.
@@ -1191,7 +1170,6 @@ The options are:
 The default is `inverse`, since at the moment this is the one that is implemented.
 
 """
-
 function eigspaces(A::Hecke.Generic.Mat{T} where T <: DiscreteValuedFieldElem; method="power")
 
     check_square(A)
