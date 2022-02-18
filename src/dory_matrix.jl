@@ -41,14 +41,8 @@ function Base.similar(bc::bcstyle, output_eltype::Type{<:NCRingElem}, tup::Any)
 
     # Determine finer information about the output of the broadcasted function.
     R = base_ring(A)
-    try
-        # Construct an output container with the proper parent.
-        y = bc.f(zero(R))
-        return matrix(parent(y), fill(y, axes(A)))
-    catch e
-        println("ERROR: Function 'f' in broadcast cannot compute 'f(0)'.\n")
-        rethrow(e)
-    end
+    y = bc.f(zero(R))
+    return matrix(parent(y), fill(y, axes(A)))
 end
 
 # In the case the output type is not an NCRingElem, return a Julia array.
