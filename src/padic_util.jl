@@ -1,5 +1,4 @@
 
-
 # simple function to invert a permutation array.
 function inverse_permutation(A::Array{Int64,1})
     Pinv = fill(0,length(A))
@@ -59,9 +58,7 @@ end
 
 # typesafe version
 function float64_valuation(x::DiscreteValuedFieldElem)
-    if iszero(x)
-        return Inf
-    end
+    iszero(x) && return Inf
     return Float64(valuation(x))
 end
 
@@ -83,10 +80,12 @@ function modp(x::Hecke.Generic.LaurentSeriesFieldElem)
 end
 
 
-## Test utilities
-function test_rings()
-    return Qp = FlintPadicField(7,20), ResidueRing(FlintZZ,7)
-end
+##############################################################################################
+#                                                                                            #
+#                          Randomization                                                     #
+#                                                                                            #
+##############################################################################################
+
 
 function randint(K::Hecke.Generic.LaurentSeriesField)
     pi = uniformizer(K)
@@ -102,14 +101,24 @@ function randint(Qp::Hecke.FlintPadicField)
     return Qp(rand(1:BigInt(p)^N))
 end
 
-function random_test_matrix(Qp,n=4)
-    A = matrix(Qp, fill(zero(Qp),n,n))
+function random_test_matrix(Qp, n=4, m=n)
+    A = matrix(Qp, fill(zero(Qp),n,m))
     for i=1:n
-        for j=1:n
+        for j=1:m
             A[i,j] = randint(Qp)
         end
     end
     return A
+end
+
+function random_rotation_matrix(K, n=5)
+    A = matrix(K, fill(zero(K), n, n))
+
+    for i=1:100
+        A = random_test_matrix(K, n)
+        valuation(det(A)) == 0 && return A
+    end
+    error("Cannot generate a random matrix in GL_n(OK).")
 end
 
 ##############################################################################################

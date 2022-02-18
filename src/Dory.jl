@@ -13,10 +13,9 @@ module Dory
 #
 #
 
-export broadcast, iterate, collect, matrix, rectangular_solve, my_nullspace, eigen, eigvecs, eigspaces, MyEigen
-
-export /, valuation, abs, modp, test_rings, rand, randint, random_test_matrix, padic_qr, inverse_iteration, singular_values
-export block_schur_form
+export /, valuation, abs, modp, rand, randint, random_test_matrix, random_rotation_matrix
+export padic_qr, svd, rectangular_solve, my_nullspace, eigen, eigvecs, eigspaces, MyEigen
+export inverse_iteration, singular_values, block_schur_form
 
 using Hecke, Distributed, Markdown
 import Hecke: Generic.Mat, Generic.MatElem, nmod_mat
