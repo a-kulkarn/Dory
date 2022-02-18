@@ -227,9 +227,9 @@ struct EigenSpaceDec{T}
 end
 
 @doc Markdown.doc"""
-    eigspaces(A::Hecke.Generic.MatElem{T}) where T --> EigenSpaceDec{T}
+    eigspaces(A::Hecke.Generic.MatElem{T}) where T -> EigenSpaceDec{T}
 
-Computes the eigen spaces of a generic matrix, and returns a list of
+Computes the eigenspaces of a generic matrix, and returns a list of
 matrices whose columns are generators for the eigen spaces.
 """
 function eigspaces(A::Hecke.Generic.MatElem{T}) where T

@@ -810,7 +810,7 @@ function inverse_iteration_decomposition(A, Amp)
 
         # Approximate input data
         appx_eval = Qp(lift(E.values[i]))
-        appx_espace =  matrix(Qp, lift(E.spaces[i]))
+        appx_espace =  change_base_ring(Qp, lift(E.spaces[i]))
 
         # Apply inverse iteration step.
         wlist,nulist = inverse_iteration(A, appx_eval, appx_espace)

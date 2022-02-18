@@ -125,8 +125,6 @@ end
 end
 
 
-# -- Eigenvectors
-
 # -- More block_schur_form.
 
 
