@@ -21,10 +21,6 @@ using Hecke, Distributed, Markdown
 import Hecke: Generic.Mat, Generic.MatElem, nmod_mat
 import Hecke: AbstractAlgebra
 
-## Export the namespace of Hecke for use after Dory
-#  In expectation of being rolled into Hecke, the export system is designed so that Dory mimics
-# the behaviours of a submodule of Hecke.
-
 include("ShouldBeInAbstractAlgebra/laurent.jl")
 include("ShouldBeInHecke/sparse_matrix.jl")
 include("Errors.jl")

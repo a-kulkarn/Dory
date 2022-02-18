@@ -30,7 +30,7 @@ function monomials_of_degree(X::Vector{S} where S <: Hecke.MPolyElem{T} where T,
 end
 
 @doc Markdown.doc"""
-    monomials_of_degree( R::Hecke.MPolyRing{T} where T,itr) --> ::Vector{S} where S <: Hecke.MPolyElem{T}
+    monomials_of_degree(R::Hecke.MPolyRing{T} where T, itr) --> ::Vector{S} where S <: Hecke.MPolyElem{T}
 
 Given a polynomial ring, return all monomials of degrees specified by `itr`.
 `itr` can a list, iterator, or a single number.
