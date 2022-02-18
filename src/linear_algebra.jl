@@ -437,7 +437,7 @@ function nullspace(A::Hecke.MatElem{<:DiscreteValuedFieldElem})
         end
     end
 
-    Pinv = inverse_permutation(F.p)   
+    Pinv = invperm(F.p)   
     
     Q = F.Q
     inv_unit_lower_triangular!(Q)
@@ -472,7 +472,7 @@ function nullspace(A::Hecke.SMat{<:DiscreteValuedFieldElem})
         end
     end
 
-    Pinv = inverse_permutation(F.p)   
+    Pinv = invperm(F.p)   
     
     Q = F.Q
     

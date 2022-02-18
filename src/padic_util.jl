@@ -1,13 +1,3 @@
-
-# simple function to invert a permutation array.
-function inverse_permutation(A::Array{Int64,1})
-    Pinv = fill(0,length(A))
-    for i=1:length(A)
-        Pinv[A[i]] = i
-    end
-    return Pinv
-end
-
 ##############################################################################################
 #                                                                                            
 #                          Input types for linear algebra
