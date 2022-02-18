@@ -25,83 +25,76 @@ struct MyStyle <: Base.BroadcastStyle end
 
 bcstyle = Broadcast.Broadcasted{MyStyle,
                                  Tuple{Base.OneTo{Int64},Base.OneTo{Int64}},
-                                 S,
-                                 Tuple{Hecke.Generic.MatSpaceElem{T}}} where S<:Function where T
+                                 <:Function,
+                                 <:Tuple{<:Hecke.Generic.MatElem}}
 
     
 
-Base.BroadcastStyle(::Type{<:Hecke.Generic.MatSpaceElem{T}} where T) = MyStyle()
-Base.broadcastable(A::Hecke.Generic.MatSpaceElem{T} where T) = deepcopy(A)
+Base.BroadcastStyle(::Type{<:Hecke.Generic.MatElem{T}} where T) = MyStyle()
+Base.broadcastable(A::Hecke.Generic.MatElem{T} where T) = deepcopy(A)
 
 
-function Base.similar(bc::bcstyle, t::Type{T} where T<:NCRingElem)
+function Base.similar(bc::bcstyle, output_eltype::Type{<:NCRingElem}, tup::Any)
+
     # Scan the inputs for a nemo matrix:
     A = find_nemo_mat(bc)
-    
-    # Use the data fields to create the output
-    if isempty(A.entries)
-        return similar(A.entries)
-    end
-    
-    val = bc.f(A[1,1])
-    init = fill(val, size(A)[1], size(A)[2])
 
-    if typeof(val) <: NCRingElem
-        return matrix(parent(val), init)
-    else
-        return init
+    # Determine finer information about the output of the broadcasted function.
+    R = base_ring(A)
+    try
+        # Construct an output container with the proper parent.
+        y = bc.f(zero(R))
+        return matrix(parent(y), fill(y, axes(A)))
+    catch e
+        println("ERROR: Function 'f' in broadcast cannot compute 'f(0)'.\n")
+        rethrow(e)
     end
 end
 
-# In the case the output type has no parent, or doesn't make sense as a matrix, or is a
-# Julia default type (like Int64), return an Array
-function Base.similar(bc::bcstyle, t::Type{T} where T)
+# In the case the output type is not an NCRingElem, return a Julia array.
+function Base.similar(bc::bcstyle, output_eltype::Type{T}, tup::Any) where T
+
     # Scan the inputs for a nemo matrix:
     A = find_nemo_mat(bc)
-    
-    # Use the data fields to create the output
-    if isempty(A.entries)
-        return similar(A.entries)
-    end
-    
-    val = bc.f(A[1,1])
-    init = fill(val, size(A)[1], size(A)[2])
-    return init
+    return Matrix{output_eltype}(undef, size(A,1), size(A,2))
 end
 
-
-function Base.copyto!(X::Hecke.Generic.MatElem{T} where T, bc::bcstyle)
+function Base.copyto!(X::Hecke.Generic.MatElem, bc::bcstyle)
     Y = bc.args[1]
-    X.entries = bc.f.(Y.entries)
-    X.base_ring = Y.base_ring    
+    for i = 1:size(X,1)
+        for j = 1:size(X,2)
+            X[i,j] = bc.f(Y[i,j])
+        end
+    end    
     return X
 end
 
-# We need to do something else for nmod_mats again.
-function Base.copyto!(X::Hecke.nmod_mat, bc::bcstyle)
-    Y = bc.args[1]
-    X = matrix(X.base_ring, bc.f.(Y.entries))
-    return X
-end
+# function Base.copyto!(X::Array{T,2} where T, bc::bcstyle)
+#     Y = bc.args[1]
+#     X = bc.f.(Y.entries)
+#     return X
+# end
 
-# ... and gfp_mat
-function Base.copyto!(X::Hecke.gfp_mat, bc::bcstyle)
-    Y = bc.args[1]
-    X = matrix(X.base_ring, bc.f.(Y.entries))
-    return X
-end
+# # We need to do something else for nmod_mats again.
+# function Base.copyto!(X::Hecke.nmod_mat, bc::bcstyle)
+#     Y = bc.args[1]
+#     X = matrix(X.base_ring, bc.f.(Y.entries))
+#     return X
+# end
 
-function Base.copyto!(X::Array{T,2} where T, bc::bcstyle)
-    Y = bc.args[1]
-    X = bc.f.(Y.entries)
-    return X
-end
+# # ... and gfp_mat
+# function Base.copyto!(X::Hecke.gfp_mat, bc::bcstyle)
+#     Y = bc.args[1]
+#     X = matrix(X.base_ring, bc.f.(Y.entries))
+#     return X
+# end
+
 
 
 find_nemo_mat(bc::Base.Broadcast.Broadcasted) = find_nemo_mat(bc.args)
 find_nemo_mat(args::Tuple) = find_nemo_mat(find_nemo_mat(args[1]), Base.tail(args))
 find_nemo_mat(x) = x
-find_nemo_mat(a::Hecke.Generic.MatSpaceElem, rest) = a
+find_nemo_mat(a::Hecke.Generic.MatElem, rest) = a
 find_nemo_mat(::Any, rest) = find_nemo_mat(rest)
 
 
@@ -111,6 +104,7 @@ find_nemo_mat(::Any, rest) = find_nemo_mat(rest)
 #
 ###################################################################
 
+#=
 function Base.getindex(A::Hecke.Generic.MatSpaceElem{T} where T, koln::Colon, I::Array{Int64,1})
     return matrix(A.base_ring, A.entries[koln,I])
 end
@@ -145,17 +139,19 @@ function Hecke.matrix(A::Array{Array{T,1},1} where T <: Hecke.NCRingElem)
     return matrix(hcat(A...))
 end
 
+=#
+
 function /(A :: Hecke.Generic.Mat{T}, x::T)  where T
     return deepcopy(A) * inv(x)
 end
 
 
 # Typesafe version of hcat-splat. Apparently there is a way to make this more efficient.
-function colcat(L::Array{T,1} where T <: Hecke.Generic.Mat{S} where S)
-    if isempty(L)
-        return T
-    end
-end
+# function colcat(L::Array{T,1} where T <: Hecke.Generic.Mat{S} where S)
+#     if isempty(L)
+#         return T
+#     end
+# end
 
 function check_square(A::AbstractMatrix)
     issquare(A) || throw(DomainError(A, "matrix must be square"))
@@ -196,12 +192,11 @@ end
 
 ##############################################################################################
 #                                                                                            #
-#                          Cosmetic override to nullspace                                    #
+#                          Correction to nullspace                                           #
 #                                                                                            #
 ##############################################################################################
 
 
-## Make things a little more consistent with the other Julia types
 @doc Markdown.doc"""
     my_nullspace(A :: T) where T <: Union{nmod_mat, fmpz_mat, gfp_mat}
 
@@ -210,12 +205,11 @@ correct return for the nullspace of the zero matrix.
 
 (Should just do a pull-request to Nemo to fix this.)
 """
-function my_nullspace(A :: T) where T <: Union{nmod_mat, fmpz_mat, gfp_mat}
+function my_nullspace(A::Hecke.Generic.MatElem)
     if iszero(A)
-        return size(A,2), identity_matrix(A.base_ring, size(A,2))
+        return size(A,2), identity_matrix(base_ring(A), size(A,2))
     end
-    nu,N = nullspace(A)
-    return nu, nu==0 ? matrix(A.base_ring, fill(0,size(A,2),0)) : N[:,1:nu]
+    return nullspace(A)
 end
 
 
