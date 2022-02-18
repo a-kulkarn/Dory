@@ -53,9 +53,16 @@ function float64_valuation(x::DiscreteValuedFieldElem)
 end
 
 
-function abs(x::DiscreteValuedFieldElem)
+function abs(x::NonArchLocalFieldElem)
     p = Hecke.prime(parent(x))
     return Float64(p)^(-valuation(x))
+end
+
+function abs(x::Hecke.Generic.LaurentSeriesFieldElem)
+    R = base_ring(parent(x))
+
+    e = characteristic(R) == 0 ? exp(1) : characteristic(R)
+    return Float64(e)^(-valuation(x))
 end
 
 function modp(x::NonArchLocalFieldElem)
@@ -65,7 +72,10 @@ function modp(x::NonArchLocalFieldElem)
 end
 
 function modp(x::Hecke.Generic.LaurentSeriesFieldElem)
-    valuation(x) < 0 && error("Cannot reduce element of negative valuation to residue field.")
+
+    if valuation(x) < 0
+        throw(DomainError(x, "Cannot reduce element of negative valuation to residue field."))
+    end
     return Hecke.coeff(x, 0)
 end
 

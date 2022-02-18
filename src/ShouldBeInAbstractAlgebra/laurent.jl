@@ -37,6 +37,12 @@ function (R::Hecke.Generic.LaurentSeriesField)(a::Int64)
     return R(base_ring(R)(a))
 end
 
+import Hecke: characteristic
+function characteristic(R::Hecke.Generic.LaurentSeriesField)
+    return characteristic(base_ring(R))
+end
+
+
 ##############################################################################################
 #                                                                                            
 #    Element functionality
