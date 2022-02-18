@@ -55,3 +55,7 @@ end
 
 import Hecke.Generic: promote_rule
 promote_rule(::Type{fmpz}, ::Type{T}) where {T<:NCRingElem} = T
+
+import Hecke: lift
+lift(x::fmpq) = x
+lift(x::fmpq_mat) = x
