@@ -1009,6 +1009,12 @@ function hessenberg(A::Hecke.Generic.Mat{T} where T <: DiscreteValuedFieldElem, 
 end
 
 
+###############################################################################
+#
+#   QR-iteration
+#
+###############################################################################
+
 #################################################
 #  QR-iteration helper functions
 #################################################
@@ -1132,16 +1138,12 @@ function block_schur_form(A::Hecke.Generic.Mat{T} where T <: DiscreteValuedField
     return B,V
 end
 
-@doc Markdown.doc"""
-    roots_with_multiplicities(f)
 
-Returns a list of roots of the polynomial `f`, with the multiplicities occuring in the factorization.
-"""
-function roots_with_multiplicities(f)
-    F = Hecke.factor(f)
-    return [(-g(0), m) for (g,m) in F if Hecke.degree(g) == 1]
-end
-
+###############################################################################
+#
+#   Eigenvalues and Eigenvectors
+#
+###############################################################################
 
 function _normalize_matrix(A)
 

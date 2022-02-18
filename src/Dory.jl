@@ -22,12 +22,13 @@ import Hecke: Generic.Mat, Generic.MatElem, nmod_mat
 import Hecke: AbstractAlgebra
 
 include("ShouldBeInAbstractAlgebra/laurent.jl")
+include("ShouldBeInAbstractAlgebra/polynomial.jl")
 include("ShouldBeInHecke/sparse_matrix.jl")
 include("Errors.jl")
 include("dory_matrix.jl")
 include("padic_util.jl")
 include("linear_algebra.jl")
-include("polynomial_ext.jl")
+
 
 
 function __init__()

@@ -91,6 +91,14 @@ function randint(Qp::Hecke.FlintPadicField)
     return Qp(rand(1:BigInt(p)^N))
 end
 
+function randunit(K::DiscreteValuedField)
+    for i=1:100
+        x = randint(K)
+        valuation(x) == 0 && return x
+    end
+    error("Cannot generate random unit in the ring of integers.") 
+end
+
 function random_test_matrix(Qp, n=4, m=n)
     A = matrix(Qp, fill(zero(Qp),n,m))
     for i=1:n
