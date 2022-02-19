@@ -5,21 +5,18 @@
 
 Package to extend the functionality of Nemo/Hecke. Notable additions include:
 
-## Basic utilities
-- Allows Julia broadcasting for AbstractAlgebra matrices.
-- Convenient constructors for AbstractAlgebra matrices.
-- Indexing functions for AbstractAlgebra matrices.
+## Broadcasting for AbstractAlgebra matrices
+- Broadcast `f.(A)`of a function over an AbstractAlgebra matrix `A` will now return an AbstractAlgebra matrix if the image of `f` is an AbstractAlgebra ring.
 
 ## padic linear algebra:
 - padic qr-factorization.
 - padic singular value decomposition.
 - padically stable solving of linear systems.
 - padically stable hessenburg form.
-- eigenvector solver (power and inverse iterations). [Only implemented for matrices defined over Qp]
+- eigenvector solver (power and inverse iterations) over local fields. 
 - block schur form. [Only implemented for matrices defined over Qp]
 
 ## Requirements
-- Hecke version 0.8.0. To install this version specifically use
-```pkg> add Hecke@0.8.0```
+- Hecke
 - Nemo
 - AbstractAlgebra
