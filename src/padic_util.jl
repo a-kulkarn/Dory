@@ -87,6 +87,9 @@ function modp(x::Hecke.Generic.LaurentSeriesFieldElem)
     return Hecke.coeff(x, 0)
 end
 
+# Function to extract information from a local field element.
+elt_info(x) = (iszero(x), valuation(x), precision(x))
+
 
 ##############################################################################################
 #                                                                                            #
