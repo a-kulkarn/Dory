@@ -13,7 +13,7 @@ module Dory
 #
 #
 
-export /, valuation, abs, modp, rand, randint, random_test_matrix, random_rotation_matrix
+export /, valuation, abs, modp, rand, randint, randunit, random_test_matrix, random_rotation_matrix
 export padic_qr, svd, rectangular_solve, my_nullspace, eigen, eigvecs, eigspaces, MyEigen
 export inverse_iteration, singular_values, block_schur_form
 export elt_info, eachrow, eachcol
