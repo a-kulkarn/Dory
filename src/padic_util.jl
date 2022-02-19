@@ -140,6 +140,27 @@ function random_rotation_matrix(K, n=5)
     error("Cannot generate a random matrix in GL_n(OK).")
 end
 
+function random_matrix_with_eigenblock(Qp, n=4, block_size=2; jordan=false)
+
+    # Specify a diagonal matrix with a large block.
+    a = randint(Qp)
+
+    rand_eigvals = Array{elem_type(Qp)}([randint(Qp) for i=1:(n-block_size)])
+    diag = vcat(rand_eigvals, fill(a, block_size))
+
+    D = diagonal_matrix(diag)
+    if jordan
+        for i = n-block_size+1 : n-1
+            D[i,i+1] = 1
+        end
+    end
+    
+    # Choose a random GL_n(Zp) matrix.
+    B = random_rotation_matrix(Qp, n)
+
+    return inv(B) * D * B, diag, B
+end
+
 ##############################################################################################
 #                                                                                            #
 #                          Polynomials over p-adic fields                                    #
