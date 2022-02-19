@@ -4,12 +4,11 @@
 #                                                                                            #
 ##############################################################################################
 
-# Compute a factorization of a padic matrix A = QR, where R is
-# upper triangular (Borel) and Q lies in the maximally compact
-# subgroup of SL(Qp) = SL(Zp).
+##############################################################################################
 #
-# It turns out that the algorithm to do this is just the LU factorization
-# with pivoting.
+#    Types
+#
+##############################################################################################
 
 struct QRNonArchimedeanPivoted{T <: DiscreteValuedFieldElem}
     Q::Hecke.Generic.MatElem{T}
@@ -26,6 +25,12 @@ struct QRNonArchimedeanSparsePivoted{T <: DiscreteValuedFieldElem}
 end
 
 
+##############################################################################################
+#
+#    Norms and normalization
+#
+##############################################################################################
+
 function norm(A::Hecke.Generic.MatElem{T}) where T <: DiscreteValuedFieldElem
     return maximum(abs, A)
 end
@@ -33,6 +38,31 @@ end
 function norm_valuation(A::Hecke.Generic.MatElem{T}) where T <: DiscreteValuedFieldElem
     return minimum(valuation, A)
 end
+
+function normalize_matrix(A)
+
+    Qp = base_ring(A)
+    vals_of_A = valuation.(A)
+    min_val = minimum(vals_of_A)
+
+    iexp = -Integer(min_val)
+    scale_factor = uniformizer(Qp)^iexp
+    return scale_factor * A, scale_factor
+end
+
+
+##############################################################################################
+#
+#    Iwasawa decomposition (QR)
+#
+##############################################################################################
+
+# Compute a factorization of a padic matrix A = QR, where R is
+# upper triangular (Borel) and Q lies in the maximally compact
+# subgroup of SL(Qp) = SL(Zp).
+#
+# It turns out that the algorithm to do this is just the LU factorization
+# with pivoting.
 
 @doc Markdown.doc"""
     padic_qr(A :: Hecke.Generic.MatElem{<:DiscreteValuedFieldElem} ; col_pivot :: Union{Val{true}, Val{false}}) -> F :: QRDiscreteValuedFieldElemPivoted
@@ -92,9 +122,9 @@ function padic_qr(A::Hecke.Generic.MatElem{T} where T<:DiscreteValuedFieldElem;
     
     for k=1:(min(n,m)::Int64)
 
-        if col_pivot==Val(true)
-            col_index=min_val_index_mut[2]
-            if col_index!=k
+        if col_pivot == Val(true)
+            col_index = min_val_index_mut[2]
+            if col_index != k
                 # interchange columns m and k in U
                 for r=1:n
                     U[r,k], U[r,col_index] = U[r,col_index], U[r,k]
@@ -114,7 +144,7 @@ function padic_qr(A::Hecke.Generic.MatElem{T} where T<:DiscreteValuedFieldElem;
         
         val_list = float64_valuation.(U[k:row_stop,k])
         minn, row_pivot_index = findmin(val_list);
-        if minn==Inf continue end
+        if minn == Inf continue end
 
         row_pivot_index=row_pivot_index+k-1;
         if row_pivot_index!=k
@@ -805,7 +835,7 @@ function inverse_iteration_decomposition(A, Amp)
         appx_espace =  change_base_ring(Qp, lift(E.spaces[i]))
 
         # Apply inverse iteration step.
-        wlist,nulist = inverse_iteration(A, appx_eval, appx_espace)
+        wlist, nulist = inverse_iteration(A, appx_eval, appx_espace)
 
         # Append refined data to the main list.
         values_lift = vcat(values_lift, nulist)
@@ -1054,7 +1084,7 @@ function block_schur_form(A::Hecke.Generic.Mat{T} where T <: DiscreteValuedField
     iszero(A) && return A, unaliased_identity_matrix(base_ring(A), ncols(A))
     
     # Extract data from the reduction modulo p
-    Aint, scale_factor  = _normalize_matrix(A)
+    Aint, scale_factor  = normalize_matrix(A)
     Amp   = modp.(Aint)
     chiAp = charpoly(Amp)
     inv_scale_factor = inv(scale_factor)
@@ -1137,37 +1167,31 @@ end
 #
 ###############################################################################
 
-function _normalize_matrix(A)
-
-    Qp = base_ring(A)
-    vals_of_A = valuation.(A)
-    min_val = minimum(vals_of_A)
-
-    scale_factor = uniformizer(Qp)^Int64(-min_val)
-    return scale_factor * A, scale_factor
-end
-
 @doc Markdown.doc"""
-    eigspaces(A::Hecke.Generic.Mat{T} where T<:DiscreteValuedFieldElem)
+    eigspaces(A::Hecke.Generic.Mat{<:DiscreteValuedFieldElem}; method=:power)
 
 Compute the eigenvectors of a padic matrix iteratively.
 
 The `method` parameter selects the method to be used to compute the eigenvectors.
 The options are:
 
--- "inverse"
--- "classical"
--- "power"
--- "qr"
--- "schur"
+- :classical
+- :power
+- :qr
+- :schur
+- :inverse (Caveat: precision loss guarenteed)
 
 The default is `inverse`, since at the moment this is the one that is implemented.
 
 """
-function eigspaces(A::Hecke.Generic.Mat{T} where T <: DiscreteValuedFieldElem; method="power")
+function eigspaces(A::Hecke.Generic.Mat{<:DiscreteValuedFieldElem}; method=:power)
 
     check_square(A)
     Qp = base_ring(A)
+
+    if method isa String
+        method = Symbol(method)
+    end
     
     if iszero(A)        
         return EigenSpaceDec(Qp, [zero(Qp)] , [unaliased_identity_matrix(Qp, size(A,1))])
@@ -1175,27 +1199,26 @@ function eigspaces(A::Hecke.Generic.Mat{T} where T <: DiscreteValuedFieldElem; m
         return EigenSpaceDec(Qp, [A[1,1]] , [unaliased_identity_matrix(Qp, size(A,1))])
     end
     
-    # Dispatch
-    if method == "classical"
+    if method == :classical
         return _eigenspaces_by_classical(A)
         
-    elseif method == "inverse"
+    elseif method == :inverse
         return _eigenspaces_by_inverse_iteration(A)
         
-    elseif method == "schur" || method == "qr"
+    elseif method == :schur || method == :qr
         error("Not Implemented. However, block_schur_form is available to compute the schur form.")
         
-    elseif method == "power"
+    elseif method == :power
         return  _eigenspaces_by_power_iteration(A)
         
     else
-        throw(NotImplemented)
+        @info " " method
+        error("Not Implemented.")
     end
-
 end
 
 function _modp_charpoly_data(A::Hecke.Generic.Mat{T} where T <: DiscreteValuedFieldElem)
-    Aint, scale_factor  = _normalize_matrix(A)
+    Aint, scale_factor  = normalize_matrix(A)
     Amp   = modp.(Aint)
     chiAp = charpoly(Amp)
 
