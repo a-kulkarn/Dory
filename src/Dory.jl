@@ -35,6 +35,7 @@ function __init__()
 
     # Setup Verbose flags
     Hecke.add_verbose_scope(:local_QR)
+    Hecke.add_verbose_scope(:local_inverse_iteration)
     
     if myid() == 1
         println("")

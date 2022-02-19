@@ -19,6 +19,14 @@ import Hecke: inv, lift, nullspace, valuation
 
 /(x::T, y::T) where T <: DiscreteValuedFieldElem = x // y
 
+function _unsafe_minus!(x::padic, y::padic)
+    x.N = min(x.N, y.N)
+    ccall((:padic_sub, Hecke.:libflint), Nothing,
+          (Ref{padic}, Ref{padic}, Ref{padic}, Ref{FlintPadicField}),
+          x, x, y, parent(x))
+    return x
+end
+
 
 function isapprox(x::DiscreteValuedFieldElem, y::DiscreteValuedFieldElem;
                   valuation_atol::Real = min(precision(x), precision(y)),

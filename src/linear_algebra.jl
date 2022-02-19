@@ -191,14 +191,6 @@ function swap_prefix_of_row!(Lent, k::Int64, i::Int64)
     return
 end
 
-# Performs subtraction in-place, x-> x-y 
-function _unsafe_minus!(x::padic, y::padic)
-    x.N = min(x.N, y.N)
-    ccall((:padic_sub, Hecke.:libflint), Nothing,
-          (Ref{padic}, Ref{padic}, Ref{padic}, Ref{FlintPadicField}),
-          x, x, y, parent(x))
-    return x
-end
 
 #######################################################################################
 #
