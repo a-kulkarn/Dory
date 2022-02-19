@@ -706,8 +706,11 @@ end
 #  Basic inverse iteration
 #################################################
 
-# TODO: Separate invariant subspaces at high valuation.
-const TESTFLAG = false
+# REMARK: Invese iteration is somehow theoretically doomed to result in precision loss.
+#         Inverting (A - λ * I) is usually ill-conditioned.
+#
+#         The loss of precision is more related to the issue of the maximum size of
+#         Av - λv, given that Bv = μv + O(p^N). 
 
 @doc Markdown.doc"""
     function inverse_iteration!(A, shift, V)
@@ -721,79 +724,70 @@ function inverse_iteration!(A, shift, V)
 
     # Note: If A is not known to precision at least one, really bad things happen.
     Qp = base_ring(A)
+    N  = precision(Qp)
     In = unaliased_identity_matrix(Qp, size(A,1))
     B  = A - shift * In
     
     if rank(B) < ncols(B)
-        println("Value `shift` is exact eigenvalue. `shift` = ", shift)
+        @vprint :local_inverse_iteration "Value `shift` is exact eigenvalue: shift = $shift"
         return [nullspace(B)[2]], [shift]
     end
 
-    function normalize(V)
-        maxn, m = findmax(abs.(V.entries))
-        if iszero(maxn)
-            return V
-        end
-        return V / V[m]
-    end
-    
-    pow = rectangular_solve(B, unaliased_identity_matrix(B.base_ring, size(B,1)), stable=true)
+    # Compute a pseudo-inverse for B
+    F = svd(B)
+    maxdval = maximum(valuation, diagonal(F.S))
 
-    if TESTFLAG
-        println("---pow---")
-        println(pow)
-        println("---")
-        println()
-    end
-    
-    for i=1:precision(Qp)
-        V = normalize(pow*V)
-        if TESTFLAG
-            println(V)
-            println()
+    Dpseudoinv = let
+        scale = uniformizer(Qp)^maxdval
+        diag = diagonal(F.S)
+        
+        newd = fill(zero(Qp), size(F.S, 1))
+        for i in 1:size(F.S,1)
+            a = diag[i]
+            b = inv(a) * scale
+            b = setprecision!(b, N)
+            newd[i] = b
         end
-    end
-    
-    if TESTFLAG
-        println("---end inv iteration---")
-        println()
+        
+        diagonal_matrix(newd)
     end
 
-    # Test for convergence and calculate eigenvalues,
-    # if the algorithm hasn't converged, check for whether the remaining subspace can be
-    # split by further iteration.
+    # Set the precision on V based on the condition number for inversion.
+    for j=1:size(V,2)
+        for i=1:size(V,1)
+            V[i,j] = setprecision!(V[i,j], N - maxdval)
+        end
+    end
+    
+    pow = let
+        Y = inv(F.Vt) * Dpseudoinv * inv(F.U)
+        Y[invperm(F.q), F.p]
+    end
+
+    ### Iteration Loop ###
+    for i=1:N * size(A, 1)
+        Vprev = V
+        V, _ = normalize_matrix(pow * V)
+    end
+
+    # Test for convergence and calculate the restricted transform on the eigenspace.
     X = try
+        # !iszero(V[3,1]) && @info " " V/V[3,1] - pow * V / (pow * V)[3,1]
         rectangular_solve(V, A*V, stable=true)        
     catch e
         throw(ConvergenceFailureError("Error in inverse iteration. Likely a stability issue."))
     end
 
-    nu= trace(X)//size(X,2)
-    Y = X - nu*unaliased_identity_matrix(Qp,size(X,2))
+    nu = trace(X) // size(X,2)
+
+    # TODO: It is possible that we can diagonalize X and refine the eigenspaces.
+    #       However, the theoretical details haven't been worked out here.
+    #
+    # First step: check:
+    #     Y  = X - nu * unaliased_identity_matrix(Qp,size(X,2))
+    #     iszero(Y)
     
-    if iszero(Y)
-        # In this case, the eigenvectors are at their maximum refinement.
-        return [V],[nu]
-    end
-
-    # Since only eigenvectors (mod p) are given as the initial data, the operator Y *must* be
-    # zero mod p. We scale out the denominator to try again.
-    
-    vals_of_Y = valuation.(Y)
-    min_val = minimum(vals_of_Y)
-
-    if min_val <=0
-        throw(ConvergenceFailureError("Convergence failed in inverse iteration."))
-    end
-
-    println("Second level iteration.")
-    scale_factor = Qp(Qp.p)^Int64(-min_val)
-    inv_scale_factor = Qp(Qp.p)^Int64(min_val)
-    Ynew = scale_factor * Y    
-    E = eigspaces(Ynew)
-
-    return Array{typeof(V),1}([V*Esp for Esp in E.spaces]),
-    Array{padic,1}([inv_scale_factor*nu for nu in E.values])
+    return [V],[nu]
 end
 
 
