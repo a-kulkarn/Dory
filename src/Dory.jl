@@ -16,12 +16,13 @@ module Dory
 export /, valuation, abs, modp, rand, randint, random_test_matrix, random_rotation_matrix
 export padic_qr, svd, rectangular_solve, my_nullspace, eigen, eigvecs, eigspaces, MyEigen
 export inverse_iteration, singular_values, block_schur_form
-export elt_info
+export elt_info, eachrow, eachcol
 
 using Hecke, Distributed, Markdown
 import Hecke: Generic.Mat, Generic.MatElem, nmod_mat
 import Hecke: AbstractAlgebra
 
+include("ShouldBeInAbstractAlgebra/matrix.jl")
 include("ShouldBeInAbstractAlgebra/laurent.jl")
 include("ShouldBeInAbstractAlgebra/polynomial.jl")
 include("ShouldBeInHecke/sparse_matrix.jl")
