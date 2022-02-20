@@ -35,11 +35,12 @@ function (R::Hecke.Generic.LaurentSeriesField)(a::Int64)
     return R(base_ring(R)(a))
 end
 
-import Hecke: characteristic
+import Hecke: characteristic, canonical_unit
 function characteristic(R::Hecke.Generic.LaurentSeriesField)
     return characteristic(base_ring(R))
 end
 
+canonical_unit(x::Hecke.Generic.FieldElem) = x
 
 ##############################################################################################
 #                                                                                            
